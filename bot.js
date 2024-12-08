@@ -161,6 +161,13 @@ function processCommand(username, content, options) {
   }
 }
 
+function onProcessed(label, input, output) {
+  if (output) {
+    console.log(`${label}: ${input}`);
+    console.log(`Bot: ${output}`);
+  }
+}
+
 function runDiscordBot() {
   const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
@@ -170,12 +177,13 @@ function runDiscordBot() {
 
   client.on('messageCreate', message => {
     if (!message.author.bot) {
-      const isModerator = message.member?.permissions.has(PermissionFlagsBits.ManageMessages) || message.member?.permissions.has(PermissionFlagsBits.Administrator);
+      const isModerator = !!(message.member?.permissions.has(PermissionFlagsBits.ManageMessages) || message.member?.permissions.has(PermissionFlagsBits.Administrator));
       const username = message.author.globalName ?? message.author.username;
+      const label = `${message.guild?.name}::${username}`
       processCommand(username, message.content, {
         isModerator,
-        send: r => message.channel.send(r),
-        reply: r => message.reply(r),
+        send: r => { message.channel.send(r); onProcessed(label, r); },
+        reply: r => { message.reply(r); onProcessed(label, r); },
       });
       saveTasks();
     }
