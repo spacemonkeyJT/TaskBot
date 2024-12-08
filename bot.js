@@ -1,14 +1,28 @@
 // @ts-check
 
+import fs from 'fs';
 import 'dotenv/config';
 import { createInterface } from 'readline';
 
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, PermissionFlagsBits } from 'discord.js';
+import { readFileSync } from 'fs';
+
+const taskFile = 'tasks.json';
 
 /**
  * @type { { [username: string]: { name: string; completed: boolean, active: boolean }[] } }
  */
-const tasks = {}
+let tasks = {}
+
+function loadTasks() {
+  if (fs.existsSync(taskFile)) {
+    tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf-8'));
+  }
+}
+
+function saveTasks() {
+  fs.writeFileSync(taskFile, JSON.stringify(tasks));
+}
 
 function getTasks(username) {
   if (!tasks[username]) {
@@ -29,10 +43,10 @@ function getIncompleteTasks(username) {
  * Processes user commands to manage tasks.
  * @param {string} username - The username of the user issuing the command.
  * @param {string} content - The content of the message containing the command.
- * @param {{ send: (r: string) => void; reply: (r: string) => void }} options - An object containing methods for sending replies.
+ * @param {{ isModerator: boolean; send: (r: string) => void; reply: (r: string) => void }} options - An object containing methods for sending replies.
  */
 function processCommand(username, content, options) {
-  const { reply, send } = options;
+  const { isModerator, reply, send } = options;
 
   const command = content.split(' ')[0];
   const args = content.substring(command.length).trim();
@@ -61,20 +75,18 @@ function processCommand(username, content, options) {
     } else {
       reply('Please provide a task name!');
     }
-    return;
   }
 
-  if (command === '!task') {
+  else if (command === '!task') {
     const task = activeTask(username);
     if (task) {
       reply(`Your active task is: ${task.name}`);
     } else {
       reply(`You have no active task!`);
     }
-    return;
   }
 
-  if (command === '!done') {
+  else if (command === '!done') {
     const task = activeTask(username);
     if (task) {
       task.completed = true;
@@ -91,10 +103,9 @@ function processCommand(username, content, options) {
     } else {
       reply(`You have no active task!`);
     }
-    return;
   }
 
-  if (command === '!next') {
+  else if (command === '!next') {
     const userTasks = getIncompleteTasks(username);
     const activeTaskIndex = userTasks.findIndex(task => task.active);
     if (activeTaskIndex !== -1) {
@@ -112,10 +123,9 @@ function processCommand(username, content, options) {
     } else {
       reply(`You have no active task!`);
     }
-    return;
   }
 
-  if (command === '!tasks') {
+  else if (command === '!tasks') {
     let summary = '';
     for (const username in tasks) {
       const userTasks = tasks[username].filter(task => !task.completed);
@@ -128,10 +138,9 @@ function processCommand(username, content, options) {
     } else {
       reply('No tasks found!');
     }
-    return;
   }
 
-  if (command === '!completed') {
+  else if (command === '!completed' && isModerator) {
     let summary = '';
     for (const username in tasks) {
       const userTasks = tasks[username].filter(task => task.completed);
@@ -144,7 +153,11 @@ function processCommand(username, content, options) {
     } else {
       reply('No tasks found!');
     }
-    return;
+  }
+
+  else if (command === '!cleartasks') {
+    tasks = {};
+    reply('All tasks have been cleared!');
   }
 }
 
@@ -157,11 +170,14 @@ function runDiscordBot() {
 
   client.on('messageCreate', message => {
     if (!message.author.bot) {
+      const isModerator = message.member?.permissions.has(PermissionFlagsBits.ManageMessages) || message.member?.permissions.has(PermissionFlagsBits.Administrator);
       const username = message.author.globalName ?? message.author.username;
       processCommand(username, message.content, {
+        isModerator,
         send: r => message.channel.send(r),
         reply: r => message.reply(r),
       });
+      saveTasks();
     }
   });
 
@@ -177,9 +193,11 @@ function runCLI() {
   const processInput = () => {
     readline.question('> ', input => {
       processCommand('user', input, {
+        isModerator: true,
         send: r => console.log(r),
         reply: r => console.log(r),
       });
+      saveTasks();
       processInput();
     });
   };
@@ -187,8 +205,14 @@ function runCLI() {
   processInput();
 }
 
-if (process.env.NODE_ENV === 'development') {
-  runCLI();
-} else {
-  runDiscordBot();
+function main() {
+  loadTasks();
+
+  if (process.env.NODE_ENV === 'development') {
+    runCLI();
+  } else {
+    runDiscordBot();
+  }
 }
+
+main();
