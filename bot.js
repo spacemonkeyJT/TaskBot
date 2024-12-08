@@ -59,6 +59,7 @@ function processCommand(username, content, options) {
     msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
     msg += '* `!tasks` - Lists all current incomplete tasks for all users.\n';
     msg += '* `!completed` - Lists all completed tasks for all users.\n';
+    msg += '* `!cleartasks` - Clears all tasks for all users (moderator only).\n';
     send(msg);
     return;
   }
@@ -182,8 +183,8 @@ function runDiscordBot() {
       const label = `${message.guild?.name}::${username}`
       processCommand(username, message.content, {
         isModerator,
-        send: r => { message.channel.send(r); onProcessed(label, r); },
-        reply: r => { message.reply(r); onProcessed(label, r); },
+        send: r => { message.channel.send(r); onProcessed(label, message.content, r); },
+        reply: r => { message.reply(r); onProcessed(label, message.content, r); },
       });
       saveTasks();
     }
