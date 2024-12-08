@@ -156,9 +156,13 @@ function processCommand(username, content, options) {
     }
   }
 
-  else if (command === '!cleartasks' && isModerator) {
-    tasks = {};
-    reply('All tasks have been cleared!');
+  else if (command === '!cleartasks') {
+    if (isModerator) {
+      tasks = {};
+      reply('All tasks have been cleared!');
+    } else {
+      reply('You do not have permission to clear tasks!');
+    }
   }
 }
 
