@@ -170,6 +170,7 @@ function onProcessed(label, input, output) {
   if (output) {
     console.log(`${label}: ${input}`);
     console.log(`Bot: ${output}`);
+    saveTasks();
   }
 }
 
@@ -190,7 +191,6 @@ function runDiscordBot() {
         send: r => { message.channel.send(r); onProcessed(label, message.content, r); },
         reply: r => { message.reply(r); onProcessed(label, message.content, r); },
       });
-      saveTasks();
     }
   });
 
