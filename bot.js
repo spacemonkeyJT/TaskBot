@@ -21,7 +21,7 @@ function loadTasks() {
 }
 
 function saveTasks() {
-  fs.writeFileSync(taskFile, JSON.stringify(tasks));
+  fs.writeFileSync(taskFile, JSON.stringify(tasks, null, 2));
 }
 
 function getTasks(username) {
