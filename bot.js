@@ -39,9 +39,10 @@ client.on('messageCreate', message => {
     if (command === '!addtask') {
       if (args) {
         const userTasks = getTasks(username);
-        userTasks.push({ name: args, completed: false, active: false });
-        if (userTasks.length === 1) {
-          userTasks[0].active = true;
+        const task = { name: args, completed: false, active: false };
+        userTasks.push(task);
+        if (!activeTask(username)) {
+          task.active = true;
         }
         message.reply(`Added your new task: ${args}`);
       } else {
