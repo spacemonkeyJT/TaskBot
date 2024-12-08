@@ -53,12 +53,12 @@ function processCommand(username, content, options) {
 
   if (command === '!taskhelp' || command === '!taskshelp') {
     let msg = 'Commands:\n\n';
-    msg += '!addtask <task_name>: Adds a new task for the user.\n';
-    msg += '!task: Displays the user\'s active task.\n';
-    msg += '!done: Marks the user\'s active task as completed and activates the next task, if available.\n';
-    msg += '!next: Activates the next task in the user\'s list of incomplete tasks.\n';
-    msg += '!tasks: Lists all current incomplete tasks for all users.\n';
-    msg += '!completed: Lists all completed tasks for all users.\n';
+    msg += '* `!addtask <task_name>` - Adds a new task for the user.\n';
+    msg += '* `!task` - Displays the user\'s active task.\n';
+    msg += '* `!done` - Marks the user\'s active task as completed and activates the next task, if available.\n';
+    msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
+    msg += '* `!tasks` - Lists all current incomplete tasks for all users.\n';
+    msg += '* `!completed` - Lists all completed tasks for all users.\n';
     send(msg);
     return;
   }
