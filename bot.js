@@ -166,10 +166,16 @@ function processCommand(username, content, options) {
   }
 }
 
+function log(msg) {
+  console.log(msg);
+  const date = new Date().toLocaleString();
+  fs.appendFileSync('log.txt', `${date} - ${msg}\n`);
+}
+
 function onProcessed(label, input, output) {
   if (output) {
-    console.log(`${label}: ${input}`);
-    console.log(`Bot: ${output}`);
+    log(`${label}: ${input}`);
+    log(`Bot: ${output}`);
     saveTasks();
   }
 }
@@ -178,7 +184,7 @@ function runDiscordBot() {
   const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
   client.once('ready', () => {
-    console.log(`Logged in as ${client.user?.tag}!`);
+    log(`Logged in as ${client.user?.tag}!`);
   });
 
   client.on('messageCreate', message => {

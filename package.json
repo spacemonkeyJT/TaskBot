@@ -7,7 +7,7 @@
   "main": "bot.js",
   "type": "module",
   "scripts": {
-    "start": "node bot.js",
+    "start": "nodemon bot.js -e js",
     "dev": "cross-env NODE_ENV=development nodemon bot.js -e js"
   },
   "dependencies": {
