@@ -141,7 +141,7 @@ function processCommand(username, content, options) {
     }
   }
 
-  else if (command === '!completed' && isModerator) {
+  else if (command === '!completed') {
     let summary = '';
     for (const username in tasks) {
       const userTasks = tasks[username].filter(task => task.completed);
@@ -156,7 +156,7 @@ function processCommand(username, content, options) {
     }
   }
 
-  else if (command === '!cleartasks') {
+  else if (command === '!cleartasks' && isModerator) {
     tasks = {};
     reply('All tasks have been cleared!');
   }
