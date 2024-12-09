@@ -5,7 +5,6 @@ import 'dotenv/config';
 import { createInterface } from 'readline';
 
 import { Client, GatewayIntentBits, PermissionFlagsBits } from 'discord.js';
-import { readFileSync } from 'fs';
 
 const taskFile = 'tasks.json';
 
@@ -63,10 +62,9 @@ function processCommand(username, content, options) {
     msg += '* `!completed` - Lists all completed tasks for all users.\n';
     msg += '* `!cleartasks` - Clears all tasks for all users (moderator only).\n';
     send(msg);
-    return;
   }
   
-  if (command === '!addtask') {
+  else if (command === '!addtask') {
     if (args) {
       const userTasks = getTasks(username);
       const task = { name: args, completed: false, active: false };
@@ -232,7 +230,7 @@ function runDiscordBot() {
     if (!message.author.bot) {
       const isModerator = !!(message.member?.permissions.has(PermissionFlagsBits.ManageMessages) || message.member?.permissions.has(PermissionFlagsBits.Administrator));
       const username = message.author.globalName ?? message.author.username;
-      const label = `${message.guild?.name}::${username}`
+      const label = message.guild ? `${message.guild.name}::${username}` : username;
       processCommand(username, message.content, {
         isModerator,
         send: r => { message.channel.send(r); onProcessed(label, message.content, r); },
