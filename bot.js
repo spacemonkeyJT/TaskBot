@@ -282,7 +282,17 @@ function main() {
   if (process.env.NODE_ENV === 'development') {
     runCLI();
   } else {
-    runDiscordBot();
+    log('Starting bot...');
+    let tries = 0;
+    while (tries < 10) {
+      try {
+        runDiscordBot();
+        break;
+      } catch (e) {
+        log(e);
+        tries++;
+      }
+    }
   }
 }
 
