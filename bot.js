@@ -8,6 +8,15 @@ import { Client, GatewayIntentBits, PermissionFlagsBits } from 'discord.js';
 
 const taskFile = 'tasks.json';
 
+const messages = {
+  completion: [
+    'Good job!',
+    'You did it!',
+    'Woohoo!',
+    'Way to go!',
+  ]
+}
+
 /**
  * @type { { [username: string]: { name: string; completed: boolean, active: boolean }[] } }
  */
@@ -36,6 +45,10 @@ function getActiveTask(username) {
 
 function getIncompleteTasks(username) {
   return getTasks(username).filter(task => !task.completed);
+}
+
+function randomMessage(messages) {
+  return messages[Math.floor(Math.random() * messages.length)];
 }
 
 /**
@@ -108,7 +121,7 @@ function processCommand(username, content, options) {
     if (task) {
       task.completed = true;
       task.active = false;
-      let msg = `Completed task: ${task.name}! Good job!`;
+      let msg = `Completed task: ${task.name}! ${randomMessage(messages.completion)}`;
       if (!getActiveTask(username)) {
         const userTasks = getIncompleteTasks(username);
         if (userTasks.length > 0) {
