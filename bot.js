@@ -31,7 +31,7 @@ function getTasks(username) {
   return tasks[username];
 }
 
-function activeTask(username) {
+function getActiveTask(username) {
   return getTasks(username).find(task => task.active);
 }
 
@@ -54,6 +54,7 @@ function processCommand(username, content, options) {
   if (command === '!taskhelp' || command === '!taskshelp') {
     let msg = 'Commands:\n\n';
     msg += '* `!addtask <task_name>` - Adds a new task for the user.\n';
+    msg += '* `!starttask <task_name>` - Adds a new task for the user and activates it.\n';
     msg += '* `!task` - Displays the user\'s active task.\n';
     msg += '* `!done` - Marks the user\'s active task as completed and activates the next task, if available.\n';
     msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
@@ -70,7 +71,7 @@ function processCommand(username, content, options) {
       const userTasks = getTasks(username);
       const task = { name: args, completed: false, active: false };
       userTasks.push(task);
-      if (!activeTask(username)) {
+      if (!getActiveTask(username)) {
         task.active = true;
       }
       reply(`Added your new task: ${args}`);
@@ -79,8 +80,24 @@ function processCommand(username, content, options) {
     }
   }
 
+  else if (command === '!starttask') {
+    if (args) {
+      const activeTask = getActiveTask(username);
+      if (activeTask) {
+        activeTask.active = false;
+      }
+      const userTasks = getTasks(username);
+      const task = { name: args, completed: false, active: false };
+      userTasks.push(task);
+      task.active = true;
+      reply(`Started your new task: ${args}`);
+    } else {
+      reply('Please provide a task name!');
+    }
+  }
+
   else if (command === '!task') {
-    const task = activeTask(username);
+    const task = getActiveTask(username);
     if (task) {
       reply(`Your active task is: ${task.name}`);
     } else {
@@ -89,12 +106,12 @@ function processCommand(username, content, options) {
   }
 
   else if (command === '!done') {
-    const task = activeTask(username);
+    const task = getActiveTask(username);
     if (task) {
       task.completed = true;
       task.active = false;
       let msg = `Completed task: ${task.name}! Good job!`;
-      if (!activeTask(username)) {
+      if (!getActiveTask(username)) {
         const userTasks = getIncompleteTasks(username);
         if (userTasks.length > 0) {
           userTasks[0].active = true;
