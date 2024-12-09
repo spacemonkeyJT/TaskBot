@@ -232,7 +232,7 @@ function onProcessed(label, input, output) {
   }
 }
 
-function runDiscordBot() {
+async function runDiscordBot() {
   const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
   client.once('ready', () => {
@@ -252,7 +252,7 @@ function runDiscordBot() {
     }
   });
 
-  client.login(process.env.DISCORD_TOKEN);
+  await client.login(process.env.DISCORD_TOKEN);
 }
 
 function runCLI() {
@@ -276,7 +276,7 @@ function runCLI() {
   processInput();
 }
 
-function main() {
+async function main() {
   loadTasks();
 
   if (process.env.NODE_ENV === 'development') {
@@ -286,14 +286,15 @@ function main() {
     let tries = 0;
     while (tries < 10) {
       try {
-        runDiscordBot();
+        await runDiscordBot();
         break;
       } catch (e) {
         log(e);
         tries++;
+        log(`Retrying... (${tries}/10)`);
       }
     }
   }
 }
 
-main();
+main().catch(console.error);
