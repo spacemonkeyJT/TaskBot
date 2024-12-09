@@ -57,7 +57,8 @@ function processCommand(username, content, options) {
     msg += '* `!task` - Displays the user\'s active task.\n';
     msg += '* `!done` - Marks the user\'s active task as completed and activates the next task, if available.\n';
     msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
-    msg += '* `!tasks` - Lists all current incomplete tasks for all users.\n';
+    msg += '* `!tasks` - Lists current incomplete tasks for the user.\n';
+    msg += '* `!alltasks` - Lists all current incomplete tasks for all users.\n';
     msg += '* `!completed` - Lists all completed tasks for all users.\n';
     msg += '* `!cleartasks` - Clears all tasks for all users (moderator only).\n';
     send(msg);
@@ -100,7 +101,7 @@ function processCommand(username, content, options) {
           msg += `\n\nNext up: ${userTasks[0].name}!`;
         }
       }
-      reply(msg);
+      reply(msg.trim());
     } else {
       reply(`You have no active task!`);
     }
@@ -127,15 +128,35 @@ function processCommand(username, content, options) {
   }
 
   else if (command === '!tasks') {
+    const userTasks = getIncompleteTasks(username);
+    if (userTasks.length > 0) {
+      let summary = '';
+      for (const task of userTasks) {
+        summary += `* ${task.name}`;
+        if (task.active) {
+          summary += ' (active)';
+        }
+        summary += '\n';
+      }
+      reply(`Your tasks:\n\n${summary.trim()}`);
+    } else {
+      reply('No tasks found!');
+    }
+  }
+
+  else if (command === '!alltasks') {
     let summary = '';
     for (const username in tasks) {
       const userTasks = tasks[username].filter(task => !task.completed);
-      for (const task of userTasks) {
-        summary += `* ${username}: ${task.name}\n`;
+      if (userTasks.length > 0) {
+        summary += `**${username}**\n\n`;
+        for (const task of userTasks) {
+          summary += `* ${task.name}`
+        }
       }
     }
     if (summary) {
-      reply(`Current tasks:\n\n${summary}`);
+      reply(`Current tasks:\n\n${summary.trim()}`);
     } else {
       reply('No tasks found!');
     }
@@ -145,12 +166,15 @@ function processCommand(username, content, options) {
     let summary = '';
     for (const username in tasks) {
       const userTasks = tasks[username].filter(task => task.completed);
-      for (const task of userTasks) {
-        summary += `* ${username}: ${task.name}\n`;
+      if (userTasks.length > 0) {
+        summary += `\n**${username}**\n\n`;
+        for (const task of userTasks) {
+          summary += `* ${task.name}\n`;
+        }
       }
     }
     if (summary) {
-      reply(`Completed tasks:\n\n${summary}`);
+      reply(`Completed tasks:\n\n${summary.trim()}`);
     } else {
       reply('No tasks found!');
     }
