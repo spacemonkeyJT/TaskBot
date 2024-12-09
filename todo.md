@@ -1,0 +1,4 @@
+- Hide tasks that are older than some amount (e.g. 12 hours)
+- Separate tasks by server
+- Give a random congratulation message from a list when completing a task
+- Add a `!starttask <name>` command to add a new task and activate it
