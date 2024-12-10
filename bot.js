@@ -179,8 +179,9 @@ function processCommand(username, content, options) {
       if (userTasks.length > 0) {
         summary += `**${username}**\n\n`;
         for (const task of userTasks) {
-          summary += `* ${task.name}`
+          summary += `* ${task.name}\n`
         }
+        summary += '\n';
       }
     }
     if (summary) {
