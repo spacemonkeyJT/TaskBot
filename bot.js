@@ -3,6 +3,7 @@
 import fs from 'fs';
 import 'dotenv/config';
 import { createInterface } from 'readline';
+import minimist from 'minimist';
 
 import { Client, GatewayIntentBits, PermissionFlagsBits } from 'discord.js';
 
@@ -277,25 +278,40 @@ function runCLI() {
   processInput();
 }
 
-async function main() {
-  loadTasks();
-
-  if (process.env.NODE_ENV === 'development') {
-    runCLI();
-  } else {
-    log('Starting bot...');
-    let tries = 0;
-    while (tries < 10) {
-      try {
-        await runDiscordBot();
-        break;
-      } catch (e) {
-        log(e);
-        tries++;
-        log(`Retrying... (${tries}/10)`);
-      }
+/**
+ * @param {{ autoRestart: boolean, dev: boolean }} options
+ */
+async function runBot(options) {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      log('Running CLI mode');
+      runCLI();
+    } else {
+      log('Running Discord bot mode');
+      await runDiscordBot();
+    }
+  } catch(err) {
+    log(err);
+    if (options.autoRestart) {
+      log('Restarting bot in 5 seconds...');
+      setTimeout(() => runBot(options), 5000);
     }
   }
+}
+
+async function main() {
+  const args = minimist(process.argv.slice(2));
+  log('Starting bot');
+
+  let autoRestart = false;
+  if (args.r) {
+    autoRestart = true;
+    log('Enabling auto-restart');
+  }
+
+  loadTasks();
+
+  await runBot({ autoRestart, dev: process.env.NODE_ENV === 'development' });
 }
 
 main().catch(console.error);
