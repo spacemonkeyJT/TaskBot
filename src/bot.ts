@@ -140,7 +140,7 @@ async function processCommand(server: string, username: string, content: string,
         if (userTasks.length > 0) {
           summary += `**${username}**\n\n`;
           for (const task of userTasks) {
-            summary += `* ${task.name}`
+            summary += `* ${task.name}\n`
           }
         }
       }
