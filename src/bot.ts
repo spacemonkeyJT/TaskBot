@@ -1,5 +1,3 @@
-// @ts-check
-
 import fs from 'fs';
 import 'dotenv/config';
 import { createInterface } from 'readline';
@@ -18,10 +16,7 @@ const messages = {
   ]
 }
 
-/**
- * @type { { [username: string]: { name: string; completed: boolean, active: boolean }[] } }
- */
-let tasks = {}
+let tasks: { [username: string]: { name: string; completed: boolean; active: boolean; }[]; } = {}
 
 function loadTasks() {
   if (fs.existsSync(taskFile)) {
@@ -33,32 +28,32 @@ function saveTasks() {
   fs.writeFileSync(taskFile, JSON.stringify(tasks, null, 2));
 }
 
-function getTasks(username) {
+function getTasks(username: string) {
   if (!tasks[username]) {
     tasks[username] = [];
   }
   return tasks[username];
 }
 
-function getActiveTask(username) {
+function getActiveTask(username: string) {
   return getTasks(username).find(task => task.active);
 }
 
-function getIncompleteTasks(username) {
+function getIncompleteTasks(username: string) {
   return getTasks(username).filter(task => !task.completed);
 }
 
-function randomMessage(messages) {
+function randomMessage(messages: string[]) {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
 /**
  * Processes user commands to manage tasks.
- * @param {string} username - The username of the user issuing the command.
- * @param {string} content - The content of the message containing the command.
- * @param {{ isModerator: boolean; send: (r: string) => void; reply: (r: string) => void }} options - An object containing methods for sending replies.
+ * @param username The username of the user issuing the command.
+ * @param content The content of the message containing the command.
+ * @param options An object containing methods for sending replies.
  */
-function processCommand(username, content, options) {
+function processCommand(username: string, content: string, options: { isModerator: boolean; send: (r: string) => void; reply: (r: string) => void; }) {
   const { isModerator, reply, send } = options;
 
   const command = content.split(' ')[0];
@@ -220,13 +215,13 @@ function processCommand(username, content, options) {
   }
 }
 
-function log(msg) {
+function log(msg: unknown) {
   console.log(msg);
   const date = new Date().toLocaleString();
   fs.appendFileSync('log.txt', `${date} - ${msg}\n`);
 }
 
-function onProcessed(label, input, output) {
+function onProcessed(label: string, input: string, output: string) {
   if (output) {
     log(`${label}: ${input}`);
     log(`Bot: ${output}`);
@@ -257,35 +252,37 @@ async function runDiscordBot() {
   await client.login(process.env.DISCORD_TOKEN);
 }
 
-function runCLI() {
+async function runCLI() {
   const readline = createInterface({
     input: process.stdin,
     output: process.stdout,
   });
 
-  const processInput = () => {
-    readline.question('> ', input => {
-      processCommand('user', input, {
-        isModerator: true,
-        send: r => console.log(r),
-        reply: r => console.log(r),
-      });
-      saveTasks();
-      processInput();
-    });
-  };
+  const question = (question: string) => new Promise<string>(resolve => readline.question(question, resolve));
 
-  processInput();
+  while (true) {
+    const input = await question('> ');
+    if (input === 'exit') {
+      break;
+    }
+    processCommand('user', input, {
+      isModerator: true,
+      send: r => console.log(r),
+      reply: r => console.log(r),
+    });
+    saveTasks();
+  }
+
+  readline.close();
 }
 
-/**
- * @param {{ autoRestart: boolean, dev: boolean }} options
- */
-async function runBot(options) {
+async function runBot(options: { autoRestart: boolean; dev: boolean; }) {
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   try {
-    if (process.env.NODE_ENV === 'development') {
+    if (options.dev) {
       log('Running CLI mode');
-      runCLI();
+      await runCLI();
     } else {
       log('Running Discord bot mode');
       await runDiscordBot();
@@ -294,7 +291,8 @@ async function runBot(options) {
     log(err);
     if (options.autoRestart) {
       log('Restarting bot in 5 seconds...');
-      setTimeout(() => runBot(options), 5000);
+      await sleep(5000);
+      await runBot(options);
     }
   }
 }
@@ -303,15 +301,22 @@ async function main() {
   const args = minimist(process.argv.slice(2));
   log('Starting bot');
 
-  let autoRestart = false;
-  if (args.r) {
-    autoRestart = true;
-    log('Enabling auto-restart');
+  const options = {
+    autoRestart: args.r,
+    dev: args.d,
+  };
+
+  if (options.dev) {
+    log('Dev mode enabled');
+  }
+
+  if (options.autoRestart) {
+    log('Auto-restart enabled');
   }
 
   loadTasks();
 
-  await runBot({ autoRestart, dev: process.env.NODE_ENV === 'development' });
+  await runBot(options);
 }
 
 main().catch(console.error);

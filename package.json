@@ -7,14 +7,19 @@
   "main": "bot.js",
   "type": "module",
   "scripts": {
-    "start": "node bot.js -r",
-    "dev": "cross-env NODE_ENV=development nodemon -e js bot.js -r"
+    "start": "bun run src/bot.ts -r",
+    "dev": "nodemon -e ts -w src -x \"bun run src/bot.ts -d -r\""
   },
   "dependencies": {
+    "@types/minimist": "^1.2.5",
     "cross-env": "^7.0.3",
     "discord.js": "^14.16.3",
     "dotenv": "^16.4.7",
     "minimist": "^1.2.8",
     "nodemon": "^3.1.7"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/bun": "latest"
   }
 }
