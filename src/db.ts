@@ -1,23 +1,31 @@
-import { createClient } from '@supabase/supabase-js'
+import { Client } from 'pg';
 
-const supabase = createClient((process.env as any).SUPABASE_URL, (process.env as any).SUPABASE_KEY)
+export const client = new Client({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'postgres',
+  password: 'sqlpw',
+  port: 5432
+});
+
+export type Task = {
+  id: number,
+  name: string,
+  completed: boolean,
+  active: boolean,
+  username: string,
+};
 
 /**
  * Gets all tasks for a given server.
  * @param server - The identifier of the server.
  * @returns An array of tasks for the given server.
  */
-export async function getTasks(server: string): Promise<Array<{ id: number, name: string, created_at: string, completed: boolean, active: boolean, user: string }>> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select()
-    .eq('server', server);
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+export async function getTasks(server: string): Promise<Task[]> {
+  return (await client.query<Task>(
+    `SELECT * FROM tasks
+    WHERE server = '${server}'`
+  )).rows;
 }
 
 /**
@@ -28,17 +36,11 @@ export async function getTasks(server: string): Promise<Array<{ id: number, name
  * @throws If there is an error fetching tasks.
  */
 export async function getUserTasks(server: string, username: string) {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select()
-    .eq('server', server)
-    .eq('user', username);
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  return (await client.query<Task>(
+    `SELECT * FROM tasks
+    WHERE server = '${server}'
+    AND username = '${username}'`
+  )).rows;
 }
 
 /**
@@ -48,20 +50,12 @@ export async function getUserTasks(server: string, username: string) {
  * @returns The active task for the given server and user, or null if no active task exists.
  */
 export async function getActiveTask(server: string, username: string) {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select()
-    .eq('server', server)
-    .eq('user', username)
-    .eq('active', true);
-
-  if (error) {
-    throw error;
-  } else if (data.length === 0) {
-    return null;
-  }
-
-  return data[0];
+  return ((await client.query(
+    `SELECT * FROM tasks
+    WHERE server = '${server}'
+    AND username = '${username}'
+    AND active = true`
+  )).rows as Task[])[0];
 }
 
 /**
@@ -71,18 +65,12 @@ export async function getActiveTask(server: string, username: string) {
  * @returns An array of incomplete tasks for the given server and user.
  */
 export async function getIncompleteTasks(server: string, username: string) {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select()
-    .eq('server', server)
-    .eq('user', username)
-    .eq('completed', false);
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  return (await client.query<Task>(
+    `SELECT * FROM tasks
+    WHERE server = '${server}'
+    AND username = '${username}'
+    AND completed = false`
+  )).rows;
 }
 
 /**
@@ -93,18 +81,12 @@ export async function getIncompleteTasks(server: string, username: string) {
  * @throws If there is an error fetching the completed tasks.
  */
 export async function getCompletedTasks(server: string, username: string) {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select()
-    .eq('server', server)
-    .eq('user', username)
-    .eq('completed', true);
-    
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  return (await client.query<Task>(
+    `SELECT * FROM tasks
+    WHERE server = '${server}'
+    AND username = '${username}'
+    AND completed = true`
+  )).rows;
 }
 
 /**
@@ -112,27 +94,12 @@ export async function getCompletedTasks(server: string, username: string) {
  * @param server The identifier of the server.
  * @param username The username of the user.
  * @param taskName The name of the task.
- * @returns The newly created task.
  */
 export async function addTask(server: string, username: string, taskName: string) {
-  const task = {
-    server,
-    user: username,
-    name: taskName,
-    created_at: new Date().toISOString(),
-    completed: false,
-    active: false
-  };
-
-  const { error } = await supabase
-    .from('tasks')
-    .insert(task);
-
-  if (error) {
-    throw error;
-  }
-
-  return task;
+  await client.query(
+    `INSERT INTO tasks (server, username, name, completed, active)
+    VALUES ('${server}', '${username}', '${taskName}', false, false)`
+  );
 }
 
 /**
@@ -142,16 +109,13 @@ export async function addTask(server: string, username: string, taskName: string
  * @param taskName The name of the task.
  */
 export async function completeTask(server: string, username: string, taskName: string) {
-  const { error } = await supabase
-    .from('tasks')
-    .update({ completed: true, active: false })
-    .eq('server', server)
-    .eq('user', username)
-    .eq('name', taskName);
-
-  if (error) {
-    throw error;
-  }
+  await client.query(
+    `UPDATE tasks
+    SET completed = true
+    WHERE server = '${server}'
+    AND username = '${username}'
+    AND name = '${taskName}'`
+  );
 }
 
 /**
@@ -162,19 +126,21 @@ export async function completeTask(server: string, username: string, taskName: s
  * @throws If there is an error activating the task.
  */
 export async function activateTask(server: string , username: string, taskName: string) {
-  await supabase
-    .from('tasks')
-    .update({ active: true })
-    .eq('server', server)
-    .eq('user', username)
-    .eq('name', taskName);
+  await client.query(
+    `UPDATE tasks
+    SET active = true
+    WHERE server = '${server}'
+    AND username = '${username}'
+    AND name = '${taskName}'`
+  );
 
-  await supabase
-    .from('tasks')
-    .update({ active: false })
-    .eq('server', server)
-    .eq('user', username)
-    .neq('name', taskName);
+  await client.query(
+    `UPDATE tasks
+    SET active = false
+    WHERE server = '${server}'
+    AND username = '${username}'
+    AND name != '${taskName}'`
+  );
 }
 
 /**
@@ -182,31 +148,17 @@ export async function activateTask(server: string , username: string, taskName: 
  * @param server The identifier of the server.
  */
 export async function clearTasks(server: string) {
-  const { error } = await supabase
-    .from('tasks')
-    .delete()
-    .eq('server', server);
-
-  if (error) {
-    throw error;
-  }
+  await client.query(
+    `DELETE FROM tasks
+    WHERE server = '${server}'`
+  );
 }
 
 export async function getUsers(server: string) {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select('user')
-    .eq('server', server);
+  const res = await client.query<{ username: string }>(
+    `SELECT DISTINCT username FROM tasks
+    WHERE server = '${server}'`
+  );
 
-  if (error) {
-    throw error;
-  }
-
-  let users = data.map(r => r.user);
-
-  // Make users unique
-  users.sort();
-  users = users.filter((user, index) => users.indexOf(user) === index);
-
-  return users;
+  return res.rows.map(r => r.username);
 }

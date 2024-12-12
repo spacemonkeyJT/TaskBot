@@ -1,6 +1,10 @@
 import { beforeAll, beforeEach, expect, test } from 'bun:test';
 import * as db from './db';
 
+beforeAll(async () => {
+  await db.client.connect();
+})
+
 beforeEach(async () => {
   await db.clearTasks('test');
 });
@@ -21,7 +25,7 @@ test('getTasks/addTasks', async () => {
   expect(tasks2.length).toBe(3);
   
   const taskInfo = tasks2.map(r => ({
-    user: r.user,
+    user: r.username,
     name: r.name,
     completed: r.completed,
     active: r.active,

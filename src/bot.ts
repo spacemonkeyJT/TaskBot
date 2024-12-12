@@ -277,6 +277,8 @@ async function main() {
     log('Auto-restart enabled');
   }
 
+  await db.client.connect();
+
   await runBot(options);
 }
 

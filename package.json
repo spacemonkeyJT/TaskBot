@@ -8,19 +8,21 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/bot.ts -r",
-    "dev": "nodemon -e ts -w src -x \"bun run src/bot.ts -d -r\""
+    "dev": "nodemon -e ts -w src -x \"bun run src/bot.ts -d -r\"",
+    "sql": "docker exec -it postgres psql -U postgres"
   },
   "dependencies": {
     "@types/minimist": "^1.2.5",
-    "@supabase/supabase-js": "^2.47.3",
     "cross-env": "^7.0.3",
     "discord.js": "^14.16.3",
     "dotenv": "^16.4.7",
     "minimist": "^1.2.8",
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.7",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.7.2"
   }
 }
