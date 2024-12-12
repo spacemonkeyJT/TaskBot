@@ -16,6 +16,8 @@ export type Task = {
   username: string,
 };
 
+function escape(str: string) { return str.replace(/'/g, "''"); }
+
 /**
  * Gets all tasks for a given server.
  * @param server - The identifier of the server.
@@ -24,8 +26,7 @@ export type Task = {
 export async function getTasks(server: string): Promise<Task[]> {
   return (await client.query<Task>(
     `SELECT * FROM tasks
-    WHERE server = $1`,
-    [server]
+    WHERE server = '${escape(server)}'`
   )).rows;
 }
 
@@ -39,9 +40,8 @@ export async function getTasks(server: string): Promise<Task[]> {
 export async function getUserTasks(server: string, username: string) {
   return (await client.query<Task>(
     `SELECT * FROM tasks
-    WHERE server = $1
-    AND username = $2`,
-    [server, username]
+    WHERE server = '${escape(server)}'
+    AND username = '${escape(username)}'`
   )).rows;
 }
 
@@ -54,10 +54,9 @@ export async function getUserTasks(server: string, username: string) {
 export async function getActiveTask(server: string, username: string) {
   return ((await client.query(
     `SELECT * FROM tasks
-    WHERE server = $1
-    AND username = $2
-    AND active = true`,
-    [server, username]
+    WHERE server = '${escape(server)}'
+    AND username = '${escape(username)}'
+    AND active = true`
   )).rows as Task[])[0];
 }
 
@@ -70,10 +69,9 @@ export async function getActiveTask(server: string, username: string) {
 export async function getIncompleteTasks(server: string, username: string) {
   return (await client.query<Task>(
     `SELECT * FROM tasks
-    WHERE server = $1
-    AND username = $2
-    AND completed = false`,
-    [server, username]
+    WHERE server = '${escape(server)}'
+    AND username = '${escape(username)}'
+    AND completed = false`
   )).rows;
 }
 
@@ -87,10 +85,9 @@ export async function getIncompleteTasks(server: string, username: string) {
 export async function getCompletedTasks(server: string, username: string) {
   return (await client.query<Task>(
     `SELECT * FROM tasks
-    WHERE server = $1
-    AND username = $2
-    AND completed = true`,
-    [server, username]
+    WHERE server = '${escape(server)}'
+    AND username = '${escape(username)}'
+    AND completed = true`
   )).rows;
 }
 
@@ -103,8 +100,7 @@ export async function getCompletedTasks(server: string, username: string) {
 export async function addTask(server: string, username: string, taskName: string) {
   await client.query(
     `INSERT INTO tasks (server, username, name, completed, active)
-    VALUES ($1, $2, $3, false, false)`,
-    [server, username, taskName]
+    VALUES ('${escape(server)}', '${escape(username)}', '${escape(taskName)}', false, false)`
   );
 }
 
@@ -118,10 +114,9 @@ export async function completeTask(server: string, username: string, taskName: s
   await client.query(
     `UPDATE tasks
     SET completed = true
-    WHERE server = $1
-    AND username = $2
-    AND name = $3`,
-    [server, username, taskName]
+    WHERE server = '${escape(server)}'
+    AND username = '${escape(username)}'
+    AND name = '${escape(taskName)}'`
   );
 }
 
@@ -136,19 +131,17 @@ export async function activateTask(server: string , username: string, taskName: 
   await client.query(
     `UPDATE tasks
     SET active = true
-    WHERE server = $1
-    AND username = $2
-    AND name = $3`,
-    [server, username, taskName]
+    WHERE server = '${escape(server)}'
+    AND username = '${escape(username)}'
+    AND name = '${escape(taskName)}'`
   );
 
   await client.query(
     `UPDATE tasks
     SET active = false
-    WHERE server = $1
-    AND username = $2
-    AND name != $3`,
-    [server, username, taskName]
+    WHERE server = '${escape(server)}'
+    AND username = '${escape(username)}'
+    AND name != '${escape(taskName)}'`
   );
 }
 
@@ -159,19 +152,16 @@ export async function activateTask(server: string , username: string, taskName: 
 export async function clearTasks(server: string) {
   await client.query(
     `DELETE FROM tasks
-    WHERE server = $1`,
-    [server]
+    WHERE server = '${escape(server)}'`
   );
 }
 
 export async function getUsers(server: string) {
   const res = await client.query<{ username: string }>(
     `SELECT DISTINCT username FROM tasks
-    WHERE server = $1`,
-    [server]
+    WHERE server = '${escape(server)}'`
   );
 
   return res.rows
-    .map(r => r.username)
-    .sort();
+    .map(r => r.username).sort();
 }
