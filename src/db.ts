@@ -24,7 +24,8 @@ export type Task = {
 export async function getTasks(server: string): Promise<Task[]> {
   return (await client.query<Task>(
     `SELECT * FROM tasks
-    WHERE server = '${server}'`
+    WHERE server = $1`,
+    [server]
   )).rows;
 }
 
@@ -38,8 +39,9 @@ export async function getTasks(server: string): Promise<Task[]> {
 export async function getUserTasks(server: string, username: string) {
   return (await client.query<Task>(
     `SELECT * FROM tasks
-    WHERE server = '${server}'
-    AND username = '${username}'`
+    WHERE server = $1
+    AND username = $2`,
+    [server, username]
   )).rows;
 }
 
@@ -52,9 +54,10 @@ export async function getUserTasks(server: string, username: string) {
 export async function getActiveTask(server: string, username: string) {
   return ((await client.query(
     `SELECT * FROM tasks
-    WHERE server = '${server}'
-    AND username = '${username}'
-    AND active = true`
+    WHERE server = $1
+    AND username = $2
+    AND active = true`,
+    [server, username]
   )).rows as Task[])[0];
 }
 
@@ -67,9 +70,10 @@ export async function getActiveTask(server: string, username: string) {
 export async function getIncompleteTasks(server: string, username: string) {
   return (await client.query<Task>(
     `SELECT * FROM tasks
-    WHERE server = '${server}'
-    AND username = '${username}'
-    AND completed = false`
+    WHERE server = $1
+    AND username = $2
+    AND completed = false`,
+    [server, username]
   )).rows;
 }
 
@@ -83,9 +87,10 @@ export async function getIncompleteTasks(server: string, username: string) {
 export async function getCompletedTasks(server: string, username: string) {
   return (await client.query<Task>(
     `SELECT * FROM tasks
-    WHERE server = '${server}'
-    AND username = '${username}'
-    AND completed = true`
+    WHERE server = $1
+    AND username = $2
+    AND completed = true`,
+    [server, username]
   )).rows;
 }
 
@@ -98,7 +103,8 @@ export async function getCompletedTasks(server: string, username: string) {
 export async function addTask(server: string, username: string, taskName: string) {
   await client.query(
     `INSERT INTO tasks (server, username, name, completed, active)
-    VALUES ('${server}', '${username}', '${taskName}', false, false)`
+    VALUES ($1, $2, $3, false, false)`,
+    [server, username, taskName]
   );
 }
 
@@ -112,9 +118,10 @@ export async function completeTask(server: string, username: string, taskName: s
   await client.query(
     `UPDATE tasks
     SET completed = true
-    WHERE server = '${server}'
-    AND username = '${username}'
-    AND name = '${taskName}'`
+    WHERE server = $1
+    AND username = $2
+    AND name = $3`,
+    [server, username, taskName]
   );
 }
 
@@ -129,17 +136,19 @@ export async function activateTask(server: string , username: string, taskName: 
   await client.query(
     `UPDATE tasks
     SET active = true
-    WHERE server = '${server}'
-    AND username = '${username}'
-    AND name = '${taskName}'`
+    WHERE server = $1
+    AND username = $2
+    AND name = $3`,
+    [server, username, taskName]
   );
 
   await client.query(
     `UPDATE tasks
     SET active = false
-    WHERE server = '${server}'
-    AND username = '${username}'
-    AND name != '${taskName}'`
+    WHERE server = $1
+    AND username = $2
+    AND name != $3`,
+    [server, username, taskName]
   );
 }
 
@@ -150,15 +159,19 @@ export async function activateTask(server: string , username: string, taskName: 
 export async function clearTasks(server: string) {
   await client.query(
     `DELETE FROM tasks
-    WHERE server = '${server}'`
+    WHERE server = $1`,
+    [server]
   );
 }
 
 export async function getUsers(server: string) {
   const res = await client.query<{ username: string }>(
     `SELECT DISTINCT username FROM tasks
-    WHERE server = '${server}'`
+    WHERE server = $1`,
+    [server]
   );
 
-  return res.rows.map(r => r.username);
+  return res.rows
+    .map(r => r.username)
+    .sort();
 }
