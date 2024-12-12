@@ -262,9 +262,6 @@ async function runCLI() {
 
   while (true) {
     const input = await question('> ');
-    if (input === 'exit') {
-      break;
-    }
     processCommand('user', input, {
       isModerator: true,
       send: r => console.log(r),
@@ -272,8 +269,6 @@ async function runCLI() {
     });
     saveTasks();
   }
-
-  readline.close();
 }
 
 async function runBot(options: { autoRestart: boolean; dev: boolean; }) {
