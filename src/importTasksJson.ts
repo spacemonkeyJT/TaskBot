@@ -6,13 +6,13 @@ type tasksJson = {
     name: string;
     completed: boolean;
     active: boolean;
-  }
+  }[]
 }
 
 async function main() {
   await db.client.connect();
 
-  const jsonData = JSON.parse(fs.readFileSync('./tasks.json', 'utf8'));
+  const jsonData: tasksJson = JSON.parse(fs.readFileSync('./tasks.json', 'utf8'));
 
   const server = 'kmrk\'s mercs';
 

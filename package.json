@@ -9,7 +9,7 @@
   "scripts": {
     "start": "bun run src/bot.ts -r",
     "dev": "nodemon -e ts -w src -x \"bun run src/bot.ts -d -r\"",
-    "sql": "docker exec -it postgres psql -U postgres"
+    "sql": "docker exec -it postgres psql spacebot -U postgres"
   },
   "dependencies": {
     "@types/minimist": "^1.2.5",

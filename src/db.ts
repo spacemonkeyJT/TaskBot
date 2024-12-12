@@ -1,12 +1,7 @@
+import { config } from './config';
 import { Client } from 'pg';
 
-export const client = new Client({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'postgres',
-  password: 'sqlpw',
-  port: 5432
-});
+export const client = new Client(config.db);
 
 export type Task = {
   id: number,
