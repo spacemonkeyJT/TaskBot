@@ -4,8 +4,7 @@ import { createInterface } from 'readline';
 import minimist from 'minimist';
 
 import { Client, GatewayIntentBits, PermissionFlagsBits } from 'discord.js';
-
-const taskFile = 'tasks.json';
+import * as db from './db.js';
 
 const messages = {
   completion: [
@@ -16,202 +15,170 @@ const messages = {
   ]
 }
 
-let tasks: { [username: string]: { name: string; completed: boolean; active: boolean; }[]; } = {}
-
-function loadTasks() {
-  if (fs.existsSync(taskFile)) {
-    tasks = JSON.parse(fs.readFileSync('tasks.json', 'utf-8'));
-  }
-}
-
-function saveTasks() {
-  fs.writeFileSync(taskFile, JSON.stringify(tasks, null, 2));
-}
-
-function getTasks(username: string) {
-  if (!tasks[username]) {
-    tasks[username] = [];
-  }
-  return tasks[username];
-}
-
-function getActiveTask(username: string) {
-  return getTasks(username).find(task => task.active);
-}
-
-function getIncompleteTasks(username: string) {
-  return getTasks(username).filter(task => !task.completed);
-}
-
 function randomMessage(messages: string[]) {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
 /**
  * Processes user commands to manage tasks.
+ * @param server The identifier of the server.
  * @param username The username of the user issuing the command.
  * @param content The content of the message containing the command.
  * @param options An object containing methods for sending replies.
  */
-function processCommand(username: string, content: string, options: { isModerator: boolean; send: (r: string) => void; reply: (r: string) => void; }) {
-  const { isModerator, reply, send } = options;
+async function processCommand(server: string, username: string, content: string, options: { isModerator: boolean; send: (r: string) => void; reply: (r: string) => void; }) {
+  try {
+    const { isModerator, reply, send } = options;
 
-  const command = content.split(' ')[0];
-  const args = content.substring(command.length).trim();
+    const command = content.split(' ')[0];
+    const args = content.substring(command.length).trim();
 
-  if (command === '!taskhelp' || command === '!taskshelp') {
-    let msg = 'Commands:\n\n';
-    msg += '* `!addtask <task_name>` - Adds a new task for the user.\n';
-    msg += '* `!starttask <task_name>` - Adds a new task for the user and activates it.\n';
-    msg += '* `!task` - Displays the user\'s active task.\n';
-    msg += '* `!done` - Marks the user\'s active task as completed and activates the next task, if available.\n';
-    msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
-    msg += '* `!tasks` - Lists current incomplete tasks for the user.\n';
-    msg += '* `!alltasks` - Lists all current incomplete tasks for all users.\n';
-    msg += '* `!completed` - Lists all completed tasks for all users.\n';
-    msg += '* `!cleartasks` - Clears all tasks for all users (moderator only).\n';
-    send(msg);
-  }
-  
-  else if (command === '!addtask') {
-    if (args) {
-      const userTasks = getTasks(username);
-      const task = { name: args, completed: false, active: false };
-      userTasks.push(task);
-      if (!getActiveTask(username)) {
-        task.active = true;
+    if (command === '!taskhelp' || command === '!taskshelp') {
+      let msg = 'Commands:\n\n';
+      msg += '* `!addtask <task_name>` - Adds a new task for the user.\n';
+      msg += '* `!starttask <task_name>` - Adds a new task for the user and activates it.\n';
+      msg += '* `!task` - Displays the user\'s active task.\n';
+      msg += '* `!done` - Marks the user\'s active task as completed and activates the next task, if available.\n';
+      msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
+      msg += '* `!tasks` - Lists current incomplete tasks for the user.\n';
+      msg += '* `!alltasks` - Lists all current incomplete tasks for all users.\n';
+      msg += '* `!completed` - Lists all completed tasks for all users.\n';
+      msg += '* `!cleartasks` - Clears all tasks for all users (moderator only).\n';
+      send(msg);
+    }
+
+    else if (command === '!addtask') {
+      if (args) {
+        const taskName = args;
+        await db.addTask(server, username, taskName);
+        if (!await db.getActiveTask(server, username)) {
+          await db.activateTask(server, username, taskName);
+        }
+        reply(`Added your new task: ${taskName}`);
+      } else {
+        reply('Please provide a task name!');
       }
-      reply(`Added your new task: ${args}`);
-    } else {
-      reply('Please provide a task name!');
     }
-  }
 
-  else if (command === '!starttask') {
-    if (args) {
-      const activeTask = getActiveTask(username);
-      if (activeTask) {
-        activeTask.active = false;
+    else if (command === '!starttask') {
+      if (args) {
+        const taskName = args;
+        await db.addTask(server, username, taskName);
+        await db.activateTask(server, username, taskName);
+        reply(`Started your new task: ${args}`);
+      } else {
+        reply('Please provide a task name!');
       }
-      const userTasks = getTasks(username);
-      const task = { name: args, completed: false, active: false };
-      userTasks.push(task);
-      task.active = true;
-      reply(`Started your new task: ${args}`);
-    } else {
-      reply('Please provide a task name!');
     }
-  }
 
-  else if (command === '!task') {
-    const task = getActiveTask(username);
-    if (task) {
-      reply(`Your active task is: ${task.name}`);
-    } else {
-      reply(`You have no active task!`);
+    else if (command === '!task') {
+      const task = await db.getActiveTask(server, username);
+      if (task) {
+        reply(`Your active task is: ${task.name}`);
+      } else {
+        reply(`You have no active task!`);
+      }
     }
-  }
 
-  else if (command === '!done') {
-    const task = getActiveTask(username);
-    if (task) {
-      task.completed = true;
-      task.active = false;
-      let msg = `Completed task: ${task.name}! ${randomMessage(messages.completion)}`;
-      if (!getActiveTask(username)) {
-        const userTasks = getIncompleteTasks(username);
+    else if (command === '!done') {
+      const task = await db.getActiveTask(server, username);
+      if (task) {
+        await db.completeTask(server, username, task.name);
+        let msg = `Completed task: ${task.name}! ${randomMessage(messages.completion)}`;
+        const userTasks = await db.getIncompleteTasks(server, username);
         if (userTasks.length > 0) {
-          userTasks[0].active = true;
+          await db.activateTask(server, username, userTasks[0].name);
           msg += `\n\nNext up: ${userTasks[0].name}!`;
         }
+        reply(msg.trim());
+      } else {
+        reply(`You have no active task!`);
       }
-      reply(msg.trim());
-    } else {
-      reply(`You have no active task!`);
     }
-  }
 
-  else if (command === '!next') {
-    const userTasks = getIncompleteTasks(username);
-    const activeTaskIndex = userTasks.findIndex(task => task.active);
-    if (activeTaskIndex !== -1) {
-      let activeTask = userTasks[activeTaskIndex];
-      if (userTasks.length > 1) {
-        activeTask.active = false;
-        if (activeTaskIndex === userTasks.length - 1) {
-          activeTask = userTasks[0];
-        } else {
-          activeTask = userTasks[activeTaskIndex + 1];
+    else if (command === '!next') {
+      const userTasks = await db.getIncompleteTasks(server, username);
+      const activeTaskIndex = userTasks.findIndex(task => task.active);
+      if (activeTaskIndex !== -1) {
+        let activeTask = userTasks[activeTaskIndex];
+        if (userTasks.length > 1) {
+          if (activeTaskIndex === userTasks.length - 1) {
+            activeTask = userTasks[0];
+          } else {
+            activeTask = userTasks[activeTaskIndex + 1];
+          }
+          await db.activateTask(server, username, activeTask.name);
         }
-        activeTask.active = true;
+        reply(`Your active task is: ${activeTask.name}`);
+      } else {
+        reply(`You have no active task!`);
       }
-      reply(`Your active task is: ${activeTask.name}`);
-    } else {
-      reply(`You have no active task!`);
     }
-  }
 
-  else if (command === '!tasks') {
-    const userTasks = getIncompleteTasks(username);
-    if (userTasks.length > 0) {
+    else if (command === '!tasks') {
+      const userTasks = await db.getIncompleteTasks(server, username);
+      if (userTasks.length > 0) {
+        let summary = '';
+        for (const task of userTasks) {
+          summary += `* ${task.name}`;
+          if (task.active) {
+            summary += ' (active)';
+          }
+          summary += '\n';
+        }
+        reply(`Your tasks:\n\n${summary.trim()}`);
+      } else {
+        reply('No tasks found!');
+      }
+    }
+
+    else if (command === '!alltasks') {
       let summary = '';
-      for (const task of userTasks) {
-        summary += `* ${task.name}`;
-        if (task.active) {
-          summary += ' (active)';
-        }
-        summary += '\n';
-      }
-      reply(`Your tasks:\n\n${summary.trim()}`);
-    } else {
-      reply('No tasks found!');
-    }
-  }
 
-  else if (command === '!alltasks') {
-    let summary = '';
-    for (const username in tasks) {
-      const userTasks = tasks[username].filter(task => !task.completed);
-      if (userTasks.length > 0) {
-        summary += `**${username}**\n\n`;
-        for (const task of userTasks) {
-          summary += `* ${task.name}\n`
-        }
-        summary += '\n';
-      }
-    }
-    if (summary) {
-      reply(`Current tasks:\n\n${summary.trim()}`);
-    } else {
-      reply('No tasks found!');
-    }
-  }
-
-  else if (command === '!completed') {
-    let summary = '';
-    for (const username in tasks) {
-      const userTasks = tasks[username].filter(task => task.completed);
-      if (userTasks.length > 0) {
-        summary += `\n**${username}**\n\n`;
-        for (const task of userTasks) {
-          summary += `* ${task.name}\n`;
+      for (const user of await db.getUsers(server)) {
+        const userTasks = await db.getIncompleteTasks(server, user);
+        if (userTasks.length > 0) {
+          summary += `**${username}**\n\n`;
+          for (const task of userTasks) {
+            summary += `* ${task.name}`
+          }
         }
       }
+      if (summary) {
+        reply(`Current tasks:\n\n${summary.trim()}`);
+      } else {
+        reply('No tasks found!');
+      }
     }
-    if (summary) {
-      reply(`Completed tasks:\n\n${summary.trim()}`);
-    } else {
-      reply('No tasks found!');
-    }
-  }
 
-  else if (command === '!cleartasks') {
-    if (isModerator) {
-      tasks = {};
-      reply('All tasks have been cleared!');
-    } else {
-      reply('You do not have permission to clear tasks!');
+    else if (command === '!completed') {
+      let summary = '';
+      for (const username of await db.getUsers(server)) {
+        const userTasks = await db.getCompletedTasks(server, username);
+        if (userTasks.length > 0) {
+          summary += `\n**${username}**\n\n`;
+          for (const task of userTasks) {
+            summary += `* ${task.name}\n`;
+          }
+        }
+      }
+      if (summary) {
+        reply(`Completed tasks:\n\n${summary.trim()}`);
+      } else {
+        reply('No tasks found!');
+      }
     }
+
+    else if (command === '!cleartasks') {
+      if (isModerator) {
+        await db.clearTasks(server);
+        reply('All tasks have been cleared!');
+      } else {
+        reply('You do not have permission to clear tasks!');
+      }
+    }
+  } catch (error) {
+    log(error);
   }
 }
 
@@ -225,7 +192,6 @@ function onProcessed(label: string, input: string, output: string) {
   if (output) {
     log(`${label}: ${input}`);
     log(`Bot: ${output}`);
-    saveTasks();
   }
 }
 
@@ -236,16 +202,19 @@ async function runDiscordBot() {
     log(`Logged in as ${client.user?.tag}!`);
   });
 
-  client.on('messageCreate', message => {
+  client.on('messageCreate', async message => {
     if (!message.author.bot) {
       const isModerator = !!(message.member?.permissions.has(PermissionFlagsBits.ManageMessages) || message.member?.permissions.has(PermissionFlagsBits.Administrator));
       const username = message.author.globalName ?? message.author.username;
-      const label = message.guild ? `${message.guild.name}::${username}` : username;
-      processCommand(username, message.content, {
-        isModerator,
-        send: r => { message.channel.send(r); onProcessed(label, message.content, r); },
-        reply: r => { message.reply(r); onProcessed(label, message.content, r); },
-      });
+      const server = message.guild?.name;
+      if (server) {
+        const label = `${server}::${username}`;
+        await processCommand(server, username, message.content, {
+          isModerator,
+          send: r => { message.channel.send(r); onProcessed(label, message.content, r); },
+          reply: r => { message.reply(r); onProcessed(label, message.content, r); },
+        });
+      }
     }
   });
 
@@ -262,12 +231,11 @@ async function runCLI() {
 
   while (true) {
     const input = await question('> ');
-    processCommand('user', input, {
+    await processCommand('test', 'user', input, {
       isModerator: true,
       send: r => console.log(r),
       reply: r => console.log(r),
     });
-    saveTasks();
   }
 }
 
@@ -282,7 +250,7 @@ async function runBot(options: { autoRestart: boolean; dev: boolean; }) {
       log('Running Discord bot mode');
       await runDiscordBot();
     }
-  } catch(err) {
+  } catch (err) {
     log(err);
     if (options.autoRestart) {
       log('Restarting bot in 5 seconds...');
@@ -308,8 +276,6 @@ async function main() {
   if (options.autoRestart) {
     log('Auto-restart enabled');
   }
-
-  loadTasks();
 
   await runBot(options);
 }
