@@ -21,7 +21,7 @@ function randomMessage(messages: string[]) {
 
 /**
  * Processes user commands to manage tasks.
- * @param server The identifier of the server.
+ * @param server The name of the server.
  * @param username The username of the user issuing the command.
  * @param content The content of the message containing the command.
  * @param options An object containing methods for sending replies.
