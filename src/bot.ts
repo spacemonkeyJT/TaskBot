@@ -143,10 +143,11 @@ async function processCommand(server: string, username: string, content: string,
     else if (command === '!alltasks') {
       let summary = '';
 
+      const users = await db.getUsers(server);
       for (const user of await db.getUsers(server)) {
         const userTasks = await db.getIncompleteTasks(server, user);
         if (userTasks.length > 0) {
-          summary += `**${username}**\n\n`;
+          summary += `\n**${user}**\n\n`;
           for (const task of userTasks) {
             summary += `* ${task.name}\n`
           }
@@ -239,7 +240,7 @@ async function runCLI() {
 
   while (true) {
     const input = await question('> ');
-    await processCommand('test', 'user', input, {
+    await processCommand('kmrk\'s mercs', 'SpaceMonkey', input, {
       isModerator: true,
       send: r => console.log(r),
       reply: r => console.log(r),
