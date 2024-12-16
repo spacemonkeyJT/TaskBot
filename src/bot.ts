@@ -12,6 +12,13 @@ const messages = {
     'You did it!',
     'Woohoo!',
     'Way to go!',
+    'You\'re crushing it!',
+  ],
+  addtask: [
+    'You got this!',
+    'I believe in you!',
+    'You can do anything.',
+    'Let\'s go!',
   ]
 }
 
@@ -54,7 +61,7 @@ async function processCommand(server: string, username: string, content: string,
         if (!await db.getActiveTask(server, username)) {
           await db.activateTask(server, username, taskName);
         }
-        reply(`Added your new task: ${taskName}`);
+        reply(`Added your new task: ${taskName}\n${randomMessage(messages.addtask)}`);
       } else {
         reply('Please provide a task name!');
       }
@@ -65,7 +72,7 @@ async function processCommand(server: string, username: string, content: string,
         const taskName = args;
         await db.addTask(server, username, taskName);
         await db.activateTask(server, username, taskName);
-        reply(`Started your new task: ${args}`);
+        reply(`Started your new task: ${args}\n${randomMessage(messages.addtask)}`);
       } else {
         reply('Please provide a task name!');
       }
@@ -84,12 +91,13 @@ async function processCommand(server: string, username: string, content: string,
       const task = await db.getActiveTask(server, username);
       if (task) {
         await db.completeTask(server, username, task.name);
-        let msg = `Completed task: ${task.name}! ${randomMessage(messages.completion)}`;
+        let msg = `Completed task: ${task.name}!`;
         const userTasks = await db.getIncompleteTasks(server, username);
         if (userTasks.length > 0) {
           await db.activateTask(server, username, userTasks[0].name);
-          msg += `\n\nNext up: ${userTasks[0].name}!`;
+          msg += `\nNext up: ${userTasks[0].name}!`;
         }
+        msg += `\n${randomMessage(messages.completion)}`;
         reply(msg.trim());
       } else {
         reply(`You have no active task!`);
