@@ -51,7 +51,8 @@ export async function getActiveTask(server: string, username: string) {
     `SELECT * FROM tasks
     WHERE server = '${escape(server)}'
     AND username = '${escape(username)}'
-    AND active = true`
+    AND active = true
+    AND completed = false`
   )).rows as Task[])[0];
 }
 
@@ -108,7 +109,7 @@ export async function addTask(server: string, username: string, taskName: string
 export async function completeTask(server: string, username: string, taskName: string) {
   await client.query(
     `UPDATE tasks
-    SET completed = true
+    SET completed = true, active = false
     WHERE server = '${escape(server)}'
     AND username = '${escape(username)}'
     AND name = '${escape(taskName)}'`
@@ -130,7 +131,7 @@ export async function activateTask(server: string , username: string, taskName: 
     AND username = '${escape(username)}'
     AND name = '${escape(taskName)}'`
   );
-
+  
   await client.query(
     `UPDATE tasks
     SET active = false
