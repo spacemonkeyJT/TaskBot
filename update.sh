@@ -1,3 +1,6 @@
 #!/bin/bash
+echo "Pulling changes"
 git pull
-pm2 reload bot
+echo "Reloading bot"
+~/.volta/bin/pm2 reload bot
+echo "Done"
