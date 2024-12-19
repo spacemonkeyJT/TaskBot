@@ -69,10 +69,20 @@ async function processCommand(server: string, username: string, content: string,
 
     else if (command === '!starttask') {
       if (args) {
-        const taskName = args;
+        let taskName = args;
+        if (/^\d+$/.test(taskName)) {
+          const tasks = await db.getIncompleteTasks(server, username);
+          const idx = parseInt(taskName) - 1;
+          if (idx >= 0 && idx < tasks.length) {
+            taskName = tasks[idx].name;
+          } else {
+            reply('Please provide a valid task number!');
+            return;
+          }
+        }
         await db.addTask(server, username, taskName);
         await db.activateTask(server, username, taskName);
-        reply(`Started your new task: ${args}\n${randomMessage(messages.addtask)}`);
+        reply(`Started your new task: ${taskName}\n${randomMessage(messages.addtask)}`);
       } else {
         reply('Please provide a task name!');
       }
@@ -152,6 +162,7 @@ async function processCommand(server: string, username: string, content: string,
           summary += `\n**${user}**\n\n`;
           for (const task of userTasks) {
             summary += `${idx + 1}. ${task.name}\n`
+            idx++;
           }
         }
       }
