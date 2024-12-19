@@ -108,7 +108,7 @@ export async function getCompletedTasks(server: string, username: string) {
  * @param taskName The name of the task.
  */
 export async function addTask(server: string, username: string, taskName: string) {
-  if ((await getTask(server, taskName)).length === 0) {
+  if ((await getTask(server, taskName)).filter(r => !r.completed).length === 0) {
     await client.query(
       `INSERT INTO tasks (server, username, name, completed, active)
       VALUES ('${escape(server)}', '${escape(username)}', '${escape(taskName)}', false, false)`

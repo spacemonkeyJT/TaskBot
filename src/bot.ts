@@ -91,13 +91,12 @@ async function processCommand(server: string, username: string, content: string,
       const task = await db.getActiveTask(server, username);
       if (task) {
         await db.completeTask(server, username, task.name);
-        let msg = `Completed task: ${task.name}!`;
+        let msg = `Completed task: ${task.name}\n${randomMessage(messages.completion)}`;
         const userTasks = await db.getIncompleteTasks(server, username);
         if (userTasks.length > 0) {
           await db.activateTask(server, username, userTasks[0].name);
           msg += `\nNext up: ${userTasks[0].name}!`;
         }
-        msg += `\n${randomMessage(messages.completion)}`;
         reply(msg.trim());
       } else {
         reply(`You have no active task!`);
@@ -127,12 +126,14 @@ async function processCommand(server: string, username: string, content: string,
       const userTasks = await db.getIncompleteTasks(server, username);
       if (userTasks.length > 0) {
         let summary = '';
+        let idx = 0;
         for (const task of userTasks) {
-          summary += `* ${task.name}`;
+          summary += `${idx + 1}. ${task.name}`;
           if (task.active) {
             summary += ' (active)';
           }
           summary += '\n';
+          idx++;
         }
         reply(`Your tasks:\n\n${summary.trim()}`);
       } else {
@@ -147,9 +148,10 @@ async function processCommand(server: string, username: string, content: string,
       for (const user of await db.getUsers(server)) {
         const userTasks = await db.getIncompleteTasks(server, user);
         if (userTasks.length > 0) {
+          let idx = 0;
           summary += `\n**${user}**\n\n`;
           for (const task of userTasks) {
-            summary += `* ${task.name}\n`
+            summary += `${idx + 1}. ${task.name}\n`
           }
         }
       }

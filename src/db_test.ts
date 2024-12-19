@@ -45,6 +45,14 @@ test('addTask should not add duplicates', async () => {
   expect(tasks.length).toBe(1);
 });
 
+test('addTask should allow duplicate of completed tasks', async () => {
+  await db.addTask('test', 'user', 'task1');
+  await db.completeTask('test', 'user', 'task1');
+  await db.addTask('test', 'user', 'task1');
+  const tasks = await db.getTasks('test');
+  expect(tasks.length).toBe(2);
+})
+
 test('getUserTasks', async () => {
   await addTestTasks();
 
