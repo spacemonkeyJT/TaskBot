@@ -26,6 +26,20 @@ export async function getTasks(server: string): Promise<Task[]> {
 }
 
 /**
+ * Retrieves a list of tasks with the specified name for a given server.
+ * @param server - The identifier of the server.
+ * @param taskName - The name of the task to retrieve.
+ * @returns An array of tasks that match the specified name for the given server.
+ */
+export async function getTask(server: string, taskName: string): Promise<Task[]> {
+  return (await client.query<Task>(
+    `SELECT * FROM tasks
+    WHERE server = '${escape(server)}'
+    AND name = '${escape(taskName)}'`
+  )).rows;
+}
+
+/**
  * Gets all tasks for a given server and user.
  * @param server The identifier of the server.
  * @param username The username of the user.
@@ -94,10 +108,12 @@ export async function getCompletedTasks(server: string, username: string) {
  * @param taskName The name of the task.
  */
 export async function addTask(server: string, username: string, taskName: string) {
-  await client.query(
-    `INSERT INTO tasks (server, username, name, completed, active)
-    VALUES ('${escape(server)}', '${escape(username)}', '${escape(taskName)}', false, false)`
-  );
+  if ((await getTask(server, taskName)).length === 0) {
+    await client.query(
+      `INSERT INTO tasks (server, username, name, completed, active)
+      VALUES ('${escape(server)}', '${escape(username)}', '${escape(taskName)}', false, false)`
+    );
+  }
 }
 
 /**

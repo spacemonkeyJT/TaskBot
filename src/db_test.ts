@@ -38,6 +38,13 @@ test('getTasks/addTasks', async () => {
   ]);
 });
 
+test('addTask should not add duplicates', async () => {
+  await db.addTask('test', 'user', 'task1');
+  await db.addTask('test', 'user', 'task1');
+  const tasks = await db.getTasks('test');
+  expect(tasks.length).toBe(1);
+});
+
 test('getUserTasks', async () => {
   await addTestTasks();
 
@@ -123,4 +130,11 @@ test('clearTasks', async () => {
   const tasks = await db.getTasks('test');
 
   expect(tasks.length).toBe(0);
+});
+
+test('getTask', async () => {
+  await addTestTasks();
+
+  expect((await db.getTask('test', 'task1')).length).toBe(1);
+  expect((await db.getTask('test', 'invalid')).length).toBe(0);
 });
