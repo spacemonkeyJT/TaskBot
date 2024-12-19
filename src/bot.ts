@@ -42,8 +42,8 @@ async function processCommand(server: string, username: string, content: string,
 
     if (command === '!taskhelp' || command === '!taskshelp') {
       let msg = 'Commands:\n\n';
-      msg += '* `!addtask <task_name>` - Adds a new task for the user.\n';
-      msg += '* `!starttask <task_name>` - Adds a new task for the user and activates it.\n';
+      msg += '* `!addtask <task name>` - Adds a new task for the user.\n';
+      msg += '* `!starttask <task name or number>` - Start an existing task by name or number, or add and activate a new task.\n';
       msg += '* `!task` - Displays the user\'s active task.\n';
       msg += '* `!done` - Marks the user\'s active task as completed and activates the next task, if available.\n';
       msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
