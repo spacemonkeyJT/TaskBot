@@ -17,7 +17,7 @@ const messages = {
   addtask: [
     'You got this!',
     'I believe in you!',
-    'You can do anything.',
+    'You can do anything!',
     'Let\'s go!',
   ]
 }
