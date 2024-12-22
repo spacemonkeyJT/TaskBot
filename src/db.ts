@@ -193,3 +193,27 @@ export async function getUsers(server: string) {
   return res.rows
     .map(r => r.username).sort();
 }
+
+export async function getSetting(server: string, setting: string) {
+  const res = await client.query(`SELECT value FROM settings
+    WHERE server = '${escape(server)}'
+    AND setting = '${escape(setting)}'`);
+
+  return res.rows.length > 0 ? res.rows[0].value as string : undefined;
+}
+
+export async function setSetting(server: string, setting: string, value: string) {
+  if (await getSetting(server, setting)) {
+    await client.query(`UPDATE settings
+      SET value = '${escape(value)}'
+      WHERE server = '${escape(server)}'`);
+  } else {
+    await client.query(`INSERT INTO settings (server, setting, value)
+      VALUES ('${escape(server)}', '${escape(setting)}', '${escape(value)}')`);
+  }
+}
+
+export async function clearSettings(server: string) {
+  await client.query(`DELETE FROM settings
+    WHERE server = '${escape(server)}'`);
+}

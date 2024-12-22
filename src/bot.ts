@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { createInterface } from 'readline';
 import minimist from 'minimist';
 
-import { Client, GatewayIntentBits, PermissionFlagsBits } from 'discord.js';
+import { Client, GatewayIntentBits, Message, OmitPartialGroupDMChannel, PermissionFlagsBits } from 'discord.js';
 import * as db from './db.js';
 
 const messages = {
@@ -50,195 +50,208 @@ async function getTaskByNameOrNumber(server: string, username: string, taskNameO
  * @param content The content of the message containing the command.
  * @param options An object containing methods for sending replies.
  */
-async function processCommand(server: string, username: string, content: string, options: { isModerator: boolean; send: (r: string) => void; reply: (r: string) => void; }) {
+async function processCommand(server: string, username: string, content: string, options: { channel: string, isModerator: boolean; send: (r: string) => void; reply: (r: string) => void; }) {
   try {
-    const { isModerator, reply, send } = options;
+    const { isModerator, reply, send, channel } = options;
 
     const command = content.split(' ')[0];
     const args = content.substring(command.length).trim();
 
-    if (command === '!taskhelp' || command === '!taskshelp') {
-      let msg = 'Commands:\n\n';
-      msg += '* `!addtask <task name>` - Adds a new task for the user.\n';
-      msg += '* `!starttask <task name or number>` - Start an existing task by name or number, or add and activate a new task.\n';
-      msg += '* `!task` - Displays the user\'s active task.\n';
-      msg += '* `!done` - Marks the user\'s active task as completed and activates the next task, if available.\n';
-      msg += '* `!cancel [task name or number]` - Cancels the user\'s active task, or by task name or number.\n';
-      msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
-      msg += '* `!tasks` - Lists current incomplete tasks for the user.\n';
-      msg += '* `!alltasks` - Lists all current incomplete tasks for all users.\n';
-      msg += '* `!completed` - Lists all completed tasks for all users.\n';
-      msg += '* `!cleartasks` - Clears all tasks for all users (moderator only).\n';
-      send(msg);
-    }
+    const taskChannel = await db.getSetting(server, 'channel');
 
-    else if (command === '!addtask') {
-      if (args) {
-        const taskName = args;
-        await db.addTask(server, username, taskName);
-        if (!await db.getActiveTask(server, username)) {
-          await db.activateTask(server, username, taskName);
-        }
-        reply(`Added your new task: ${taskName}\n${randomMessage(messages.addtask)}`);
+    if (command === '!taskchannel') {
+      if (isModerator) {
+        const channelName = args || channel;
+        await db.setSetting(server, 'channel', channelName);
+        reply(`Task channel set to ${channelName}`);
       } else {
-        reply('Please provide a task name!');
+        reply('You do not have permission to do this.');
       }
-    }
+    } else if (!taskChannel || taskChannel === channel) {
+      if (command === '!taskhelp' || command === '!taskshelp') {
+        let msg = 'Commands:\n\n';
+        msg += '* `!addtask <task name>` - Adds a new task for the user.\n';
+        msg += '* `!starttask <task name or number>` - Start an existing task by name or number, or add and activate a new task.\n';
+        msg += '* `!task` - Displays the user\'s active task.\n';
+        msg += '* `!done` - Marks the user\'s active task as completed and activates the next task, if available.\n';
+        msg += '* `!cancel [task name or number]` - Cancels the user\'s active task, or by task name or number.\n';
+        msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
+        msg += '* `!tasks` - Lists current incomplete tasks for the user.\n';
+        msg += '* `!alltasks` - Lists all current incomplete tasks for all users.\n';
+        msg += '* `!completed` - Lists all completed tasks for all users.\n';
+        msg += '* `!cleartasks` - Clears all tasks for all users (moderator only).\n';
+        msg += '* `!taskchannel [name]` - Set/clear the Discord channel that the bot responds in. (moderator only).\n';
+        send(msg);
+      }
 
-    else if (command === '!starttask') {
-      if (args) {
-        let taskName = await getTaskByNameOrNumber(server, username, args);
-        if (!taskName) {
-          taskName = args;
+      else if (command === '!addtask') {
+        if (args) {
+          const taskName = args;
           await db.addTask(server, username, taskName);
-          await db.activateTask(server, username, taskName);
-          reply(`Started your new task: ${taskName}\n${randomMessage(messages.addtask)}`);
+          if (!await db.getActiveTask(server, username)) {
+            await db.activateTask(server, username, taskName);
+          }
+          reply(`Added your new task: ${taskName}\n${randomMessage(messages.addtask)}`);
         } else {
-          await db.activateTask(server, username, taskName);
-          reply(`Started task: ${taskName}`);
+          reply('Please provide a task name!');
         }
-      } else {
-        reply('Please provide a task name!');
       }
-    }
 
-    else if (command === '!task') {
-      const task = await db.getActiveTask(server, username);
-      if (task) {
-        reply(`Your active task is: ${task.name}`);
-      } else {
-        reply(`You have no active task!`);
+      else if (command === '!starttask') {
+        if (args) {
+          let taskName = await getTaskByNameOrNumber(server, username, args);
+          if (!taskName) {
+            taskName = args;
+            await db.addTask(server, username, taskName);
+            await db.activateTask(server, username, taskName);
+            reply(`Started your new task: ${taskName}\n${randomMessage(messages.addtask)}`);
+          } else {
+            await db.activateTask(server, username, taskName);
+            reply(`Started task: ${taskName}`);
+          }
+        } else {
+          reply('Please provide a task name!');
+        }
       }
-    }
 
-    else if (command === '!done') {
-      const task = await db.getActiveTask(server, username);
-      if (task) {
-        await db.completeTask(server, username, task.name);
-        let msg = `Completed task: ${task.name}\n${randomMessage(messages.completion)}`;
-        const userTasks = await db.getIncompleteTasks(server, username);
-        if (userTasks.length > 0) {
-          await db.activateTask(server, username, userTasks[0].name);
-          msg += `\nNext up: ${userTasks[0].name}!`;
+      else if (command === '!task') {
+        const task = await db.getActiveTask(server, username);
+        if (task) {
+          reply(`Your active task is: ${task.name}`);
+        } else {
+          reply(`You have no active task!`);
+        }
+      }
+
+      else if (command === '!done') {
+        const task = await db.getActiveTask(server, username);
+        if (task) {
+          await db.completeTask(server, username, task.name);
+          let msg = `Completed task: ${task.name}\n${randomMessage(messages.completion)}`;
+          const userTasks = await db.getIncompleteTasks(server, username);
+          if (userTasks.length > 0) {
+            await db.activateTask(server, username, userTasks[0].name);
+            msg += `\nNext up: ${userTasks[0].name}!`;
+          }
+          reply(msg.trim());
+        } else {
+          reply(`You have no active task!`);
+        }
+      }
+
+      else if (command === '!cancel') {
+        let taskName: string | undefined = undefined;
+        let msg = '';
+        if (args) {
+          taskName = await getTaskByNameOrNumber(server, username, args);
+          if (!taskName) {
+            msg += `Could not find task: ${args}`;
+          }
+        } else {
+          const activeTask = await db.getActiveTask(server, username);
+          if (activeTask) {
+            taskName = activeTask.name;
+          } else {
+            msg += `You have no active task!`;
+          }
+        }
+        if (taskName) {
+          await db.deleteTask(server, username, taskName);
+          msg += `Canceled task: ${taskName}`;
+          const userTasks = await db.getIncompleteTasks(server, username);
+          if (userTasks.length > 0) {
+            await db.activateTask(server, username, userTasks[0].name);
+            msg += `\nNext up: ${userTasks[0].name}!`;
+          }
         }
         reply(msg.trim());
-      } else {
-        reply(`You have no active task!`);
       }
-    }
 
-    else if (command === '!cancel') {
-      let taskName: string | undefined = undefined;
-      let msg = '';
-      if (args) {
-        taskName = await getTaskByNameOrNumber(server, username, args);
-        if (!taskName) {
-          msg += `Could not find task: ${args}`;
-        }
-      } else {
-        const activeTask = await db.getActiveTask(server, username);
-        if (activeTask) {
-          taskName = activeTask.name;
+      else if (command === '!next') {
+        const userTasks = await db.getIncompleteTasks(server, username);
+        const activeTaskIndex = userTasks.findIndex(task => task.active);
+        if (activeTaskIndex !== -1) {
+          let activeTask = userTasks[activeTaskIndex];
+          if (userTasks.length > 1) {
+            if (activeTaskIndex === userTasks.length - 1) {
+              activeTask = userTasks[0];
+            } else {
+              activeTask = userTasks[activeTaskIndex + 1];
+            }
+            await db.activateTask(server, username, activeTask.name);
+          }
+          reply(`Your active task is: ${activeTask.name}`);
         } else {
-          msg += `You have no active task!`;
+          reply(`You have no active task!`);
         }
       }
-      if (taskName) {
-        await db.deleteTask(server, username, taskName);
-        msg += `Canceled task: ${taskName}`;
+
+      else if (command === '!tasks') {
         const userTasks = await db.getIncompleteTasks(server, username);
         if (userTasks.length > 0) {
-          await db.activateTask(server, username, userTasks[0].name);
-          msg += `\nNext up: ${userTasks[0].name}!`;
-        }
-      }
-      reply(msg.trim());
-    }
-
-    else if (command === '!next') {
-      const userTasks = await db.getIncompleteTasks(server, username);
-      const activeTaskIndex = userTasks.findIndex(task => task.active);
-      if (activeTaskIndex !== -1) {
-        let activeTask = userTasks[activeTaskIndex];
-        if (userTasks.length > 1) {
-          if (activeTaskIndex === userTasks.length - 1) {
-            activeTask = userTasks[0];
-          } else {
-            activeTask = userTasks[activeTaskIndex + 1];
-          }
-          await db.activateTask(server, username, activeTask.name);
-        }
-        reply(`Your active task is: ${activeTask.name}`);
-      } else {
-        reply(`You have no active task!`);
-      }
-    }
-
-    else if (command === '!tasks') {
-      const userTasks = await db.getIncompleteTasks(server, username);
-      if (userTasks.length > 0) {
-        let summary = '';
-        let idx = 0;
-        for (const task of userTasks) {
-          summary += `${idx + 1}. ${task.name}`;
-          if (task.active) {
-            summary += ' (active)';
-          }
-          summary += '\n';
-          idx++;
-        }
-        reply(`Your tasks:\n\n${summary.trim()}`);
-      } else {
-        reply('No tasks found!');
-      }
-    }
-
-    else if (command === '!alltasks') {
-      let summary = '';
-
-      const users = await db.getUsers(server);
-      for (const user of await db.getUsers(server)) {
-        const userTasks = await db.getIncompleteTasks(server, user);
-        if (userTasks.length > 0) {
+          let summary = '';
           let idx = 0;
-          summary += `\n**${user}**\n\n`;
           for (const task of userTasks) {
-            summary += `${idx + 1}. ${task.name}\n`
+            summary += `${idx + 1}. ${task.name}`;
+            if (task.active) {
+              summary += ' (active)';
+            }
+            summary += '\n';
             idx++;
           }
+          reply(`Your tasks:\n\n${summary.trim()}`);
+        } else {
+          reply('No tasks found!');
         }
       }
-      if (summary) {
-        reply(`Current tasks:\n\n${summary.trim()}`);
-      } else {
-        reply('No tasks found!');
-      }
-    }
 
-    else if (command === '!completed') {
-      let summary = '';
-      for (const username of await db.getUsers(server)) {
-        const userTasks = await db.getCompletedTasks(server, username);
-        if (userTasks.length > 0) {
-          summary += `\n**${username}**\n\n`;
-          for (const task of userTasks) {
-            summary += `* ${task.name}\n`;
+      else if (command === '!alltasks') {
+        let summary = '';
+
+        const users = await db.getUsers(server);
+        for (const user of await db.getUsers(server)) {
+          const userTasks = await db.getIncompleteTasks(server, user);
+          if (userTasks.length > 0) {
+            let idx = 0;
+            summary += `\n**${user}**\n\n`;
+            for (const task of userTasks) {
+              summary += `${idx + 1}. ${task.name}\n`
+              idx++;
+            }
           }
         }
+        if (summary) {
+          reply(`Current tasks:\n\n${summary.trim()}`);
+        } else {
+          reply('No tasks found!');
+        }
       }
-      if (summary) {
-        reply(`Completed tasks:\n\n${summary.trim()}`);
-      } else {
-        reply('No tasks found!');
-      }
-    }
 
-    else if (command === '!cleartasks') {
-      if (isModerator) {
-        await db.clearTasks(server);
-        reply('All tasks have been cleared!');
-      } else {
-        reply('You do not have permission to clear tasks!');
+      else if (command === '!completed') {
+        let summary = '';
+        for (const username of await db.getUsers(server)) {
+          const userTasks = await db.getCompletedTasks(server, username);
+          if (userTasks.length > 0) {
+            summary += `\n**${username}**\n\n`;
+            for (const task of userTasks) {
+              summary += `* ${task.name}\n`;
+            }
+          }
+        }
+        if (summary) {
+          reply(`Completed tasks:\n\n${summary.trim()}`);
+        } else {
+          reply('No tasks found!');
+        }
+      }
+
+      else if (command === '!cleartasks') {
+        if (isModerator) {
+          await db.clearTasks(server);
+          reply('All tasks have been cleared!');
+        } else {
+          reply('You do not have permission to clear tasks!');
+        }
       }
     }
   } catch (error) {
@@ -266,15 +279,15 @@ async function runDiscordBot() {
     if (!message.author.bot) {
       const isModerator = !!(message.member?.permissions.has(PermissionFlagsBits.ManageMessages) || message.member?.permissions.has(PermissionFlagsBits.Administrator));
       const username = message.author.globalName ?? message.author.username;
-      const server = message.guild?.name;
-      if (server) {
-        const label = `${server}::${username}`;
-        await processCommand(server, username, message.content, {
-          isModerator,
-          send: r => { message.channel.send(r); onProcessed(label, message.content, r); },
-          reply: r => { message.reply(r); onProcessed(label, message.content, r); },
-        });
-      }
+      const server = message.guild!.name;
+      const channel = (message.channel as any).name as string;
+      const label = `${server}::${channel}::${username}`;
+      await processCommand(server, username, message.content, {
+        channel,
+        isModerator,
+        send: r => { message.channel.send(r); onProcessed(label, message.content, r); },
+        reply: r => { message.reply(r); onProcessed(label, message.content, r); },
+      });
     }
   });
 
@@ -307,6 +320,7 @@ async function runCLI() {
   while (true) {
     const input = await question('> ');
     await processCommand('test', 'SpaceMonkey', input, {
+      channel: 'test',
       isModerator: true,
       send: r => console.log(r),
       reply: r => console.log(r),

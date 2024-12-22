@@ -14,6 +14,15 @@ async function main() {
     )
   `);
 
+  await db.client.query(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id SERIAL PRIMARY KEY,
+      server TEXT NOT NULL,
+      setting TEXT NOT NULL,
+      value TEXT
+    )
+  `);
+
   process.exit(0);
 }
 

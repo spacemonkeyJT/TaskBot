@@ -7,6 +7,8 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await db.clearTasks('test');
+  await db.clearSettings('test');
+  await db.clearSettings('test2');
 });
 
 async function addTestTasks() {
@@ -145,4 +147,29 @@ test('getTask', async () => {
 
   expect((await db.getTask('test', 'task1')).length).toBe(1);
   expect((await db.getTask('test', 'invalid')).length).toBe(0);
+});
+
+test('settings', async () => {
+  await db.setSetting('test', 'foo', 'bar');
+  await db.setSetting('test2', 'foo', 'bar2');
+  expect(await db.getSetting('test', 'foo')).toBe('bar');
+  expect(await db.getSetting('test2', 'foo')).toBe('bar2');
+
+  await db.setSetting('test', 'foo', 'baz');
+  expect(await db.getSetting('test', 'foo')).toBe('baz');
+  expect(await db.getSetting('test2', 'foo')).toBe('bar2');
+
+  await db.setSetting('test2', 'foo', 'baz2');
+  expect(await db.getSetting('test', 'foo')).toBe('baz');
+  expect(await db.getSetting('test2', 'foo')).toBe('baz2');
+});
+
+test('deleteTask', async () => {
+  await addTestTasks();
+
+  expect((await db.getUserTasks('test', 'user')).length).toBe(2);
+
+  await db.deleteTask('test', 'user', 'task1');
+
+  expect((await db.getUserTasks('test', 'user')).length).toBe(1);
 });
