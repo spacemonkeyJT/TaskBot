@@ -9,6 +9,7 @@ export type Task = {
   completed: boolean,
   active: boolean,
   username: string,
+  created_at: Date,
 };
 
 function escape(str: string) { return str.replace(/'/g, "''"); }

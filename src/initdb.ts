@@ -10,7 +10,8 @@ async function main() {
       username TEXT NOT NULL,
       name TEXT NOT NULL,
       active BOOLEAN NOT NULL DEFAULT FALSE,
-      completed BOOLEAN NOT NULL DEFAULT FALSE
+      completed BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )
   `);
 
