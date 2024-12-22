@@ -3,3 +3,4 @@ node_modules/
 /tasks.json
 /log.txt
 /config.json
+/crash_log.txt

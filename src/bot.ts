@@ -220,10 +220,6 @@ function onProcessed(label: string, input: string, output: string) {
 async function runDiscordBot() {
   const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
-  client.once('ready', () => {
-    log(`Logged in as ${client.user?.tag}!`);
-  });
-
   client.on('messageCreate', async message => {
     if (!message.author.bot) {
       const isModerator = !!(message.member?.permissions.has(PermissionFlagsBits.ManageMessages) || message.member?.permissions.has(PermissionFlagsBits.Administrator));
@@ -238,6 +234,21 @@ async function runDiscordBot() {
         });
       }
     }
+  });
+
+  client.on('error', error => {
+    log(error);
+    process.exit(1);
+  });
+
+  const timeout = setTimeout(() => {
+    log('Timed out, restarting...');
+    process.exit(1);
+  }, 10 * 1000);
+
+  client.once('ready', () => {
+    log(`Logged in as ${client.user?.tag}!`);
+    clearTimeout(timeout);
   });
 
   await client.login(process.env.DISCORD_TOKEN);
@@ -262,8 +273,6 @@ async function runCLI() {
 }
 
 async function runBot(options: { autoRestart: boolean; dev: boolean; }) {
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
   try {
     if (options.dev) {
       log('Running CLI mode');
@@ -274,11 +283,6 @@ async function runBot(options: { autoRestart: boolean; dev: boolean; }) {
     }
   } catch (err) {
     log(err);
-    if (options.autoRestart) {
-      log('Restarting bot in 5 seconds...');
-      await sleep(5000);
-      await runBot(options);
-    }
   }
 }
 

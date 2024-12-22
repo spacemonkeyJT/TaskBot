@@ -1,6 +1,6 @@
 module.exports = {
   apps : [{
-    name   : "bot",
+    name   : "spacebot",
     script : "./src/pm2start.js"
   }]
 }
