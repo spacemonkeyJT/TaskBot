@@ -26,6 +26,23 @@ function randomMessage(messages: string[]) {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
+async function getTaskByNameOrNumber(server: string, username: string, taskNameOrNumber: string) {
+  let taskName: string | undefined = undefined;
+  if (/^\d+$/.test(taskNameOrNumber)) {
+    const tasks = await db.getIncompleteTasks(server, username);
+    const idx = parseInt(taskNameOrNumber) - 1;
+    if (idx >= 0 && idx < tasks.length) {
+      taskName = tasks[idx].name;
+    }
+  } else {
+    const taskByName = await db.getTask(server, taskNameOrNumber);
+    if (taskByName.length > 0) {
+      taskName = taskByName[0].name;
+    }
+  }
+  return taskName;
+}
+
 /**
  * Processes user commands to manage tasks.
  * @param server The name of the server.
@@ -46,6 +63,7 @@ async function processCommand(server: string, username: string, content: string,
       msg += '* `!starttask <task name or number>` - Start an existing task by name or number, or add and activate a new task.\n';
       msg += '* `!task` - Displays the user\'s active task.\n';
       msg += '* `!done` - Marks the user\'s active task as completed and activates the next task, if available.\n';
+      msg += '* `!cancel [task name or number]` - Cancels the user\'s active task, or by task name or number.\n';
       msg += '* `!next` - Activates the next task in the user\'s list of incomplete tasks.\n';
       msg += '* `!tasks` - Lists current incomplete tasks for the user.\n';
       msg += '* `!alltasks` - Lists all current incomplete tasks for all users.\n';
@@ -69,20 +87,16 @@ async function processCommand(server: string, username: string, content: string,
 
     else if (command === '!starttask') {
       if (args) {
-        let taskName = args;
-        if (/^\d+$/.test(taskName)) {
-          const tasks = await db.getIncompleteTasks(server, username);
-          const idx = parseInt(taskName) - 1;
-          if (idx >= 0 && idx < tasks.length) {
-            taskName = tasks[idx].name;
-          } else {
-            reply('Please provide a valid task number!');
-            return;
-          }
+        let taskName = await getTaskByNameOrNumber(server, username, args);
+        if (!taskName) {
+          taskName = args;
+          await db.addTask(server, username, taskName);
+          await db.activateTask(server, username, taskName);
+          reply(`Started your new task: ${taskName}\n${randomMessage(messages.addtask)}`);
+        } else {
+          await db.activateTask(server, username, taskName);
+          reply(`Started task: ${taskName}`);
         }
-        await db.addTask(server, username, taskName);
-        await db.activateTask(server, username, taskName);
-        reply(`Started your new task: ${taskName}\n${randomMessage(messages.addtask)}`);
       } else {
         reply('Please provide a task name!');
       }
@@ -111,6 +125,34 @@ async function processCommand(server: string, username: string, content: string,
       } else {
         reply(`You have no active task!`);
       }
+    }
+
+    else if (command === '!cancel') {
+      let taskName: string | undefined = undefined;
+      let msg = '';
+      if (args) {
+        taskName = await getTaskByNameOrNumber(server, username, args);
+        if (!taskName) {
+          msg += `Could not find task: ${args}`;
+        }
+      } else {
+        const activeTask = await db.getActiveTask(server, username);
+        if (activeTask) {
+          taskName = activeTask.name;
+        } else {
+          msg += `You have no active task!`;
+        }
+      }
+      if (taskName) {
+        await db.deleteTask(server, username, taskName);
+        msg += `Canceled task: ${taskName}`;
+        const userTasks = await db.getIncompleteTasks(server, username);
+        if (userTasks.length > 0) {
+          await db.activateTask(server, username, userTasks[0].name);
+          msg += `\nNext up: ${userTasks[0].name}!`;
+        }
+      }
+      reply(msg.trim());
     }
 
     else if (command === '!next') {
@@ -264,7 +306,7 @@ async function runCLI() {
 
   while (true) {
     const input = await question('> ');
-    await processCommand('kmrk\'s mercs', 'SpaceMonkey', input, {
+    await processCommand('test', 'SpaceMonkey', input, {
       isModerator: true,
       send: r => console.log(r),
       reply: r => console.log(r),

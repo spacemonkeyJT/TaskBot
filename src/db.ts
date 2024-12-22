@@ -133,6 +133,22 @@ export async function completeTask(server: string, username: string, taskName: s
 }
 
 /**
+ * Deletes a task for the given server and user.
+ * @param server The identifier of the server.
+ * @param username The username of the user.
+ * @param taskName The name of the task.
+ * @throws If there is an error deleting the task.
+ */
+export async function deleteTask(server: string, username: string, taskName: string) {
+  await client.query(
+    `DELETE FROM tasks
+    WHERE server = '${escape(server)}'
+    AND username = '${escape(username)}'
+    AND name = '${escape(taskName)}'`
+  );
+}
+
+/**
  * Activates a task for the given server and user.
  * @param server The identifier of the server.
  * @param username The username of the user.
