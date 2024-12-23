@@ -339,29 +339,35 @@ async function runBot(options: { autoRestart: boolean; dev: boolean; }) {
     }
   } catch (err) {
     log(err);
+    process.exit(1);
   }
 }
 
 async function main() {
-  const args = minimist(process.argv.slice(2));
-  log('Starting bot');
+  try {
+    const args = minimist(process.argv.slice(2));
+    log('Starting bot');
 
-  const options = {
-    autoRestart: args.r,
-    dev: args.d,
-  };
+    const options = {
+      autoRestart: args.r,
+      dev: args.d,
+    };
 
-  if (options.dev) {
-    log('Dev mode enabled');
+    if (options.dev) {
+      log('Dev mode enabled');
+    }
+
+    if (options.autoRestart) {
+      log('Auto-restart enabled');
+    }
+
+    await db.client.connect();
+
+    await runBot(options);
+  } catch (err) {
+    log(err);
+    process.exit(1);
   }
-
-  if (options.autoRestart) {
-    log('Auto-restart enabled');
-  }
-
-  await db.client.connect();
-
-  await runBot(options);
 }
 
 main().catch(console.error);
