@@ -218,3 +218,12 @@ export async function clearSettings(server: string) {
   await client.query(`DELETE FROM settings
     WHERE server = '${escape(server)}'`);
 }
+
+export async function deleteOldTasks(server: string) {
+  const maxTaskAgeMinStr = await getSetting(server, 'maxTaskAgeMin');
+  const maxTaskAgeMin = maxTaskAgeMinStr ? Math.min(parseInt(maxTaskAgeMinStr), 1) : 480;
+
+  await client.query(`DELETE FROM tasks
+    WHERE server = '${escape(server)}'
+    AND created_at < NOW() - INTERVAL '${maxTaskAgeMin} minutes'`);
+}

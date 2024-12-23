@@ -59,6 +59,8 @@ async function processCommand(server: string, username: string, content: string,
 
     const taskChannel = await db.getSetting(server, 'channel');
 
+    await db.deleteOldTasks(server);
+
     if (command === '!taskchannel') {
       if (isModerator) {
         const channelName = args || channel;
