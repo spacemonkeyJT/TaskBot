@@ -54,7 +54,7 @@ async function processCommand(server: string, username: string, content: string,
   try {
     const { isModerator, reply, send, channel } = options;
 
-    const command = content.split(' ')[0];
+    const command = content.split(' ')[0].toLowerCase();
     const args = content.substring(command.length).trim();
 
     const taskChannel = await db.getSetting(server, 'channel');
