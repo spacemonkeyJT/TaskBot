@@ -1,2 +1,2 @@
-- Hide tasks that are older than some amount (e.g. 12 hours)
-- Separate tasks by server
+- Fix crashing issue
+- Hide tasks that are older than some amount (e.g. 8 hours)
