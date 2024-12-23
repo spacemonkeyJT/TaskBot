@@ -173,3 +173,30 @@ test('deleteTask', async () => {
 
   expect((await db.getUserTasks('test', 'user')).length).toBe(1);
 });
+
+test('getIncompleteTasks', async () => {
+  await addTestTasks();
+
+  expect((await db.getIncompleteTasks('test', 'user')).length).toBe(2);
+  expect((await db.getIncompleteTasks('test', 'user2')).length).toBe(1);
+
+  await db.completeTask('test', 'user', 'task1');
+
+  expect((await db.getIncompleteTasks('test', 'user')).length).toBe(1);
+});
+
+test('deleteOldTasks', async () => {
+  await addTestTasks();
+
+  await db.client.query(`UPDATE tasks
+    SET created_at = NOW() - INTERVAL '500 minutes'
+    WHERE server = 'test'
+    AND username = 'user'
+    AND name = 'task1'`);
+
+  expect((await db.getUserTasks('test', 'user')).map(t => t.name).sort()).toEqual(['task1', 'task2']);
+
+  await db.deleteOldTasks('test');
+
+  expect((await db.getUserTasks('test', 'user')).map(t => t.name).sort()).toEqual(['task2']);
+});
