@@ -1,10 +1,10 @@
-import fs from 'fs';
 import 'dotenv/config';
 import { createInterface } from 'readline';
 import minimist from 'minimist';
 
 import { Client, GatewayIntentBits, Message, OmitPartialGroupDMChannel, PermissionFlagsBits } from 'discord.js';
 import * as db from './db.js';
+import { log } from './logger.js';
 
 const messages = {
   completion: [
@@ -259,12 +259,6 @@ async function processCommand(server: string, username: string, content: string,
   } catch (error) {
     log(error);
   }
-}
-
-function log(msg: unknown) {
-  console.log(msg);
-  const date = new Date().toLocaleString();
-  fs.appendFileSync('log.txt', `${date} - ${msg}\n`);
 }
 
 function onProcessed(label: string, input: string, output: string) {
