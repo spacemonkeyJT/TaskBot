@@ -9,6 +9,7 @@ export type Task = {
   completed: boolean,
   active: boolean,
   username: string,
+  created_at: Date,
 };
 
 function escape(str: string) { return str.replace(/'/g, "''"); }
@@ -133,6 +134,22 @@ export async function completeTask(server: string, username: string, taskName: s
 }
 
 /**
+ * Deletes a task for the given server and user.
+ * @param server The identifier of the server.
+ * @param username The username of the user.
+ * @param taskName The name of the task.
+ * @throws If there is an error deleting the task.
+ */
+export async function deleteTask(server: string, username: string, taskName: string) {
+  await client.query(
+    `DELETE FROM tasks
+    WHERE server = '${escape(server)}'
+    AND username = '${escape(username)}'
+    AND name = '${escape(taskName)}'`
+  );
+}
+
+/**
  * Activates a task for the given server and user.
  * @param server The identifier of the server.
  * @param username The username of the user.
@@ -176,4 +193,37 @@ export async function getUsers(server: string) {
 
   return res.rows
     .map(r => r.username).sort();
+}
+
+export async function getSetting(server: string, setting: string) {
+  const res = await client.query(`SELECT value FROM settings
+    WHERE server = '${escape(server)}'
+    AND setting = '${escape(setting)}'`);
+
+  return res.rows.length > 0 ? res.rows[0].value as string : undefined;
+}
+
+export async function setSetting(server: string, setting: string, value: string) {
+  if (await getSetting(server, setting)) {
+    await client.query(`UPDATE settings
+      SET value = '${escape(value)}'
+      WHERE server = '${escape(server)}'`);
+  } else {
+    await client.query(`INSERT INTO settings (server, setting, value)
+      VALUES ('${escape(server)}', '${escape(setting)}', '${escape(value)}')`);
+  }
+}
+
+export async function clearSettings(server: string) {
+  await client.query(`DELETE FROM settings
+    WHERE server = '${escape(server)}'`);
+}
+
+export async function deleteOldTasks(server: string) {
+  const maxTaskAgeMinStr = await getSetting(server, 'maxTaskAgeMin');
+  const maxTaskAgeMin = maxTaskAgeMinStr ? Math.min(parseInt(maxTaskAgeMinStr), 1) : 480;
+
+  await client.query(`DELETE FROM tasks
+    WHERE server = '${escape(server)}'
+    AND created_at < NOW() - INTERVAL '${maxTaskAgeMin} minutes'`);
 }

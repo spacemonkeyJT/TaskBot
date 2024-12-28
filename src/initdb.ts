@@ -10,7 +10,17 @@ async function main() {
       username TEXT NOT NULL,
       name TEXT NOT NULL,
       active BOOLEAN NOT NULL DEFAULT FALSE,
-      completed BOOLEAN NOT NULL DEFAULT FALSE
+      completed BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.client.query(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id SERIAL PRIMARY KEY,
+      server TEXT NOT NULL,
+      setting TEXT NOT NULL,
+      value TEXT
     )
   `);
 
