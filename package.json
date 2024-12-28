@@ -7,8 +7,8 @@
   "main": "bot.js",
   "type": "module",
   "scripts": {
-    "start": "bun run src/bot.ts -r",
-    "dev": "nodemon -e ts -w src -x \"bun run src/bot.ts -d -r\"",
+    "start": "bun run src/bot.ts",
+    "dev": "nodemon -e ts -w src -x \"bun run src/bot.ts -d\"",
     "sql": "docker exec -it postgres psql taskbot -U postgres"
   },
   "dependencies": {

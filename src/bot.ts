@@ -302,6 +302,7 @@ async function runDiscordBot() {
     clearTimeout(timeout);
   });
 
+  log('Logging in...');
   await client.login(process.env.DISCORD_TOKEN);
 }
 
@@ -324,7 +325,7 @@ async function runCLI() {
   }
 }
 
-async function runBot(options: { autoRestart: boolean; dev: boolean; }) {
+async function runBot(options: { dev: boolean; }) {
   try {
     if (options.dev) {
       log('Running CLI mode');
@@ -345,16 +346,11 @@ async function main() {
     log('Starting bot');
 
     const options = {
-      autoRestart: args.r,
       dev: args.d,
     };
 
     if (options.dev) {
       log('Dev mode enabled');
-    }
-
-    if (options.autoRestart) {
-      log('Auto-restart enabled');
     }
 
     await db.client.connect();
