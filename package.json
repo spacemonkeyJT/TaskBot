@@ -3,7 +3,7 @@
   "author": "SpaceMonkeyJT",
   "description": "",
   "version": "1.0.0",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "main": "bot.js",
   "type": "module",
   "scripts": {
