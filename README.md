@@ -1,7 +1,7 @@
 
 # TaskBot
 
-TaskBot is a collaborative Discord bot designed to help users manage their tasks during coworking sessions. With TaskBot, users can easily add, track, and complete tasks in real time, making it ideal for productivity-focused communities, study groups, and remote teams. The bot keeps track of each user's task list and helps everyone stay accountable and organized.
+[TaskBot](https://github.com/spacemonkeyJT/TaskBot) is a collaborative Discord bot designed to help users manage their tasks during coworking sessions. With TaskBot, users can easily add, track, and complete tasks in real time, making it ideal for productivity-focused communities, study groups, and remote teams. The bot keeps track of each user's task list and helps everyone stay accountable and organized.
 
 ## Features
 
@@ -64,4 +64,4 @@ If you encounter issues when adding TaskBot to your server or using its commands
 	- Check the bot's status or logs if self-hosting.
 	- Review the latest documentation or open an issue on the project repository.
 
-For further help, please contact the maintainer or open an issue on GitHub.
+For further help, please contact the maintainer or [open an issue on GitHub](https://github.com/spacemonkeyJT/TaskBot/issues).
