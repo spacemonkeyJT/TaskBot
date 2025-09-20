@@ -61,7 +61,4 @@ If you encounter issues when adding TaskBot to your server or using its commands
 4. **Still having trouble?**
 
 	- Try removing and re-adding the bot to your server.
-	- Check the bot's status or logs if self-hosting.
-	- Review the latest documentation or open an issue on the project repository.
-
-For further help, please contact the maintainer or [open an issue on GitHub](https://github.com/spacemonkeyJT/TaskBot/issues).
+	- For further help, please [open an issue on GitHub](https://github.com/spacemonkeyJT/TaskBot/issues).
